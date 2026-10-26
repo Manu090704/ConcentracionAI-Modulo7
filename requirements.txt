@@ -1,0 +1,9 @@
+# Probado con Python 3.13 (macOS arm64, Linux x86_64 y Windows x64)
+tensorflow==2.20.0
+kagglehub
+pillow
+numpy
+pandas
+matplotlib
+scikit-learn
+ipykernel
