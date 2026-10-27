@@ -176,7 +176,46 @@ El proceso de extracción, transformación y carga se realizó antes del entrena
 
 La extracción se hizo mediante la biblioteca \texttt{kagglehub}, que descarga el conjunto de datos y lo guarda en una caché local. Posteriormente se construyó una tabla con la ruta y la clase de cada imagen, y se eliminaron los duplicados exactos como se describió en la sección anterior.
 
-\pendiente{describir la partición estratificada en entrenamiento, validación y prueba (proporciones y semilla), la conversión a RGB, el redimensionado (tamaño elegido y decisión entre estirar o rellenar las imágenes de cartoon), el guardado en caché y el aumento de datos aplicado solo a entrenamiento.}
+\subsection{Partición de los datos}
+
+Sobre las imágenes sin duplicados se realizó una partición estratificada por clase en tres subconjuntos: 70\% para entrenamiento, 15\% para validación y 15\% para prueba, con una semilla fija (42) para que los resultados sean reproducibles. La estratificación mantiene en cada subconjunto la misma proporción de clases que en el total, lo que conserva el leve desbalance de anime. La Tabla~\ref{tab:particion} muestra el resultado.
+
+\begin{table}[H]
+\caption{Número de imágenes por clase y partición}
+\label{tab:particion}
+\centering
+\footnotesize
+\begin{tabular}{lcccc}
+\hline
+\textbf{Clase} & \textbf{Entrenamiento} & \textbf{Validación} & \textbf{Prueba} & \textbf{Total} \\
+\hline
+\texttt{anime}   & 1,834 & 393   & 394   & 2,621 \\
+\texttt{cartoon} & 2,039 & 437   & 437   & 2,913 \\
+\texttt{human}   & 2,100 & 450   & 450   & 3,000 \\
+\hline
+\textbf{Total}   & 5,973 & 1,280 & 1,281 & 8,534 \\
+\hline
+\end{tabular}
+\end{table}
+
+La partición se hizo sobre las rutas de las imágenes y antes de transformarlas, de modo que ninguna información de validación o prueba interviene en el entrenamiento. Además, se verificó mediante el resumen MD5 que ninguna imagen aparece en más de una partición. El conjunto de entrenamiento se utiliza para ajustar los parámetros de los modelos, el de validación para monitorear el desempeño y ajustar hiperparámetros, y el de prueba se mantiene aislado y se usa únicamente para reportar el desempeño final.
+
+\subsection{Transformación de las imágenes}
+
+Cada imagen se convierte a RGB de tres canales y se deja en un tamaño único de $128 \times 128$ píxeles, ya que la red convolucional requiere entradas de dimensiones fijas. La reducción se realiza con el método de remuestreo de Lanczos, aplicado de la misma manera a todas las clases, para evitar que la nitidez de la imagen reducida difiera artificialmente entre ellas.
+
+Como las imágenes de cartoon no son cuadradas en su mayoría, se probaron dos estrategias para llegar a un cuadrado:
+
+\begin{itemize}
+    \item \textbf{Relleno (padding):} se reduce la imagen conservando su proporción, de modo que su lado mayor mida 128 píxeles, y se centra sobre un lienzo cuadrado rellenado con el color mediano de su propio borde, para que las bandas resultantes sean poco llamativas.
+    \item \textbf{Estiramiento (stretch):} se redimensiona directamente a $128 \times 128$, lo que deforma las imágenes no cuadradas.
+\end{itemize}
+
+Se comenzó con el relleno. Sin embargo, como solo el 12\% de las imágenes de cartoon son cuadradas y el 100\% de anime y human lo son, el relleno hace que casi todas las imágenes de cartoon tengan bandas y ninguna de las otras clases, lo cual puede convertirse en un atajo para el modelo. Por ello, posteriormente se compara con el estiramiento, que no introduce bordes pero deforma las proporciones. \pendiente{reportar la comparación de resultados entre ambas estrategias.}
+
+\subsection{Carga y almacenamiento en caché}
+
+Las imágenes transformadas se guardan como arreglos de enteros sin signo de 8 bits (\texttt{uint8}) en una caché local, uno por partición y por estrategia de redimensionado. De esta forma, el costo de decodificar y reducir las imágenes originales, en particular las de 1,024 $\times$ 1,024 píxeles de human, se paga una sola vez. El conjunto de entrenamiento ocupa aproximadamente 294 MB en memoria, por lo que cabe completo en la RAM. El procesamiento de las 8,534 imágenes se paraleliza con hilos y tomó 11 segundos en la computadora utilizada. Las etiquetas se codifican como enteros (0 para anime, 1 para cartoon y 2 para human).
 
 La normalización de los píxeles al rango $[0,1]$ se realiza dividiendo entre 255 mediante una capa \texttt{Rescaling} dentro de la CNN propia. Para la arquitectura preentrenada se utiliza el preprocesamiento que ella misma incluye. \pendiente{confirmar al implementar el modelo con transferencia de aprendizaje.}
 
