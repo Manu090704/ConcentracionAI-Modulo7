@@ -204,20 +204,15 @@ La partición se hizo sobre las rutas de las imágenes y antes de transformarlas
 
 \subsection{Transformación de las imágenes}
 
-Cada imagen se convierte a RGB de tres canales y se deja en un tamaño único de $128 \times 128$ píxeles, ya que la red convolucional requiere entradas de dimensiones fijas. La reducción se realiza con el método de remuestreo de Lanczos, aplicado de la misma manera a todas las clases, para evitar que la nitidez de la imagen reducida difiera artificialmente entre ellas.
+Cada imagen se convierte a RGB de tres canales y se deja en un tamaño único de $128 \times 128$ píxeles, ya que la red convolucional requiere entradas de dimensiones fijas. El redimensionado se realiza con el filtro de Lanczos de la biblioteca Pillow \cite{pillow}, un método de remuestreo por convolución con antialiasing, aplicado de la misma manera a todas las clases. Esto es relevante porque reducir imágenes sin un filtro adecuado puede introducir aliasing \cite{aliasing}, y en este conjunto de datos la reducción es considerable, por ejemplo de 1,024 a 128 píxeles en las imágenes de human.
 
-Como las imágenes de cartoon no son cuadradas en su mayoría, se probaron dos estrategias para llegar a un cuadrado:
+Como las imágenes de cartoon no son cuadradas en su mayoría, para llegar a un cuadrado se utiliza relleno (padding): se reduce la imagen conservando su proporción, de modo que su lado mayor mida 128 píxeles, y se centra sobre un lienzo cuadrado rellenado con el color mediano de su propio borde, para que las bandas resultantes sean poco llamativas. De esta forma no se deforman las imágenes.
 
-\begin{itemize}
-    \item \textbf{Relleno (padding):} se reduce la imagen conservando su proporción, de modo que su lado mayor mida 128 píxeles, y se centra sobre un lienzo cuadrado rellenado con el color mediano de su propio borde, para que las bandas resultantes sean poco llamativas.
-    \item \textbf{Estiramiento (stretch):} se redimensiona directamente a $128 \times 128$, lo que deforma las imágenes no cuadradas.
-\end{itemize}
-
-Se comenzó con el relleno. Sin embargo, como solo el 12\% de las imágenes de cartoon son cuadradas y el 100\% de anime y human lo son, el relleno hace que casi todas las imágenes de cartoon tengan bandas y ninguna de las otras clases, lo cual puede convertirse en un atajo para el modelo. Por ello, posteriormente se compara con el estiramiento, que no introduce bordes pero deforma las proporciones. \pendiente{reportar la comparación de resultados entre ambas estrategias.}
+Sin embargo, como solo el 12\% de las imágenes de cartoon son cuadradas y el 100\% de anime y human lo son, el relleno hace que casi todas las imágenes de cartoon tengan bandas y ninguna de las otras clases, lo cual puede convertirse en un atajo para el modelo.
 
 \subsection{Carga y almacenamiento en caché}
 
-Las imágenes transformadas se guardan como arreglos de enteros sin signo de 8 bits (\texttt{uint8}) en una caché local, uno por partición y por estrategia de redimensionado. De esta forma, el costo de decodificar y reducir las imágenes originales, en particular las de 1,024 $\times$ 1,024 píxeles de human, se paga una sola vez. El conjunto de entrenamiento ocupa aproximadamente 294 MB en memoria, por lo que cabe completo en la RAM. El procesamiento de las 8,534 imágenes se paraleliza con hilos y tomó 11 segundos en la computadora utilizada. Las etiquetas se codifican como enteros (0 para anime, 1 para cartoon y 2 para human).
+Las imágenes transformadas se guardan como arreglos de enteros sin signo de 8 bits (\texttt{uint8}) en una caché local, uno por partición. De esta forma, el costo de decodificar y reducir las imágenes originales, en particular las de 1,024 $\times$ 1,024 píxeles de human, se paga una sola vez. El conjunto de entrenamiento ocupa aproximadamente 294 MB en memoria, por lo que cabe completo en la RAM. El procesamiento de las 8,534 imágenes se paraleliza con hilos y tomó 11 segundos en la computadora utilizada. Las etiquetas se codifican como enteros (0 para anime, 1 para cartoon y 2 para human).
 
 La normalización de los píxeles al rango $[0,1]$ se realiza dividiendo entre 255 mediante una capa \texttt{Rescaling} dentro de la CNN propia. Para la arquitectura preentrenada se utiliza el preprocesamiento que ella misma incluye. \pendiente{confirmar al implementar el modelo con transferencia de aprendizaje.}
 
@@ -278,6 +273,14 @@ M. Abadi et al., ``TensorFlow: Large-scale machine learning on heterogeneous sys
 \bibitem{keras}
 F. Chollet et al., ``Keras,'' 2015.
 [Online]. Available: \url{https://keras.io}
+
+\bibitem{pillow}
+Pillow (PIL Fork), ``2.7.0 release notes,'' Pillow Documentation.
+[Online]. Available: \url{https://pillow.readthedocs.io/en/stable/releasenotes/2.7.0.html}
+
+\bibitem{aliasing}
+G. Parmar, R. Zhang and J.-Y. Zhu, ``On aliased resizing and surprising subtleties in GAN evaluation,'' arXiv:2104.11222, 2021.
+[Online]. Available: \url{https://arxiv.org/abs/2104.11222}
 
 \end{thebibliography}
 
