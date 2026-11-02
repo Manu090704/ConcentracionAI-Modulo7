@@ -214,7 +214,7 @@ Sin embargo, como solo el 12\% de las imágenes de cartoon son cuadradas y el 10
 
 Las imágenes transformadas se guardan como arreglos de enteros sin signo de 8 bits (\texttt{uint8}) en una caché local, uno por partición. De esta forma, el costo de decodificar y reducir las imágenes originales, en particular las de 1,024 $\times$ 1,024 píxeles de human, se paga una sola vez. El conjunto de entrenamiento ocupa aproximadamente 294 MB en memoria, por lo que cabe completo en la RAM. El procesamiento de las 8,534 imágenes se paraleliza con hilos y tomó 11 segundos en la computadora utilizada. Las etiquetas se codifican como enteros (0 para anime, 1 para cartoon y 2 para human).
 
-La normalización de los píxeles al rango $[0,1]$ se realiza dividiendo entre 255 mediante una capa \texttt{Rescaling} dentro de la CNN propia. Para la arquitectura preentrenada se utiliza el preprocesamiento que ella misma incluye. \pendiente{confirmar al implementar el modelo con transferencia de aprendizaje.}
+La normalización de los píxeles al rango $[0,1]$ se realiza dividiendo entre 255 mediante una capa \texttt{Rescaling} dentro de la CNN propia. Para la arquitectura preentrenada (EfficientNetB0) no se divide entre 255: la versión de Keras incluye en sus primeras capas el reescalado y la normalización de la entrada, y espera píxeles en el rango $[0,255]$, que es como se guardan las imágenes en la caché.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % MODELOS
@@ -224,19 +224,92 @@ La normalización de los píxeles al rango $[0,1]$ se realiza dividiendo entre 2
 
 \subsection{CNN propia (modelo base)}
 
-\pendiente{describir la arquitectura (bloques convolucionales, pooling, capas densas), la función de pérdida, el optimizador y los hiperparámetros iniciales. Incluir el fundamento de la operación de convolución y de la capa softmax.}
+Como primer modelo se diseñó una red neuronal convolucional sencilla y se entrenó desde cero, sin regularización ni aumento de datos, para tener un punto de comparación claro. Cada mejora posterior se prueba por separado, de modo que se pueda explicar qué cambio funcionó y por qué.
+
+La red recibe imágenes RGB de $128 \times 128$ píxeles y está formada por tres bloques convolucionales, cada uno con una capa convolucional y una de agrupación máxima, seguidos de un clasificador denso. La Tabla~\ref{tab:cnn} muestra sus capas.
+
+\begin{table}[H]
+\caption{Arquitectura de la CNN base}
+\label{tab:cnn}
+\centering
+\footnotesize
+\begin{tabular}{lcr}
+\hline
+\textbf{Capa} & \textbf{Salida} & \textbf{Parámetros} \\
+\hline
+Reescalado ($\div 255$) & $128 \times 128 \times 3$ & 0 \\
+Conv2D, 32 filtros $3 \times 3$, ReLU & $126 \times 126 \times 32$ & 896 \\
+MaxPooling2D $2 \times 2$ & $63 \times 63 \times 32$ & 0 \\
+Conv2D, 64 filtros $3 \times 3$, ReLU & $61 \times 61 \times 64$ & 18,496 \\
+MaxPooling2D $2 \times 2$ & $30 \times 30 \times 64$ & 0 \\
+Conv2D, 128 filtros $3 \times 3$, ReLU & $28 \times 28 \times 128$ & 73,856 \\
+MaxPooling2D $2 \times 2$ & $14 \times 14 \times 128$ & 0 \\
+Flatten & 25,088 & 0 \\
+Dense, 128 neuronas, ReLU & 128 & 3,211,392 \\
+Dense, 3 neuronas, softmax & 3 & 387 \\
+\hline
+\textbf{Total} & & \textbf{3,305,027} \\
+\hline
+\end{tabular}
+\end{table}
+
+La capa convolucional aplica a la imagen un conjunto de filtros pequeños cuyos valores se aprenden. Para un filtro $K$ de tamaño $3 \times 3 \times C$ y un sesgo $b$, la salida en la posición $(i,j)$ es
+
+\begin{equation}
+z_{i,j} = b + \sum_{c=1}^{C}\sum_{m=0}^{2}\sum_{n=0}^{2} K_{m,n,c}\, x_{i+m,\,j+n,\,c},
+\end{equation}
+
+y sobre ella se aplica la función de activación ReLU, $\mathrm{ReLU}(z)=\max(0,z)$. Las primeras capas detectan rasgos simples, como bordes y texturas, y las siguientes los combinan en formas más complejas. La agrupación máxima de $2 \times 2$ conserva el mayor valor de cada ventana y reduce a la mitad el tamaño espacial, lo que disminuye el número de parámetros y da cierta tolerancia a pequeños desplazamientos.
+
+La última capa tiene tres neuronas con activación softmax, que convierte los valores $z_1, z_2, z_3$ en probabilidades de cada clase:
+
+\begin{equation}
+p_k = \frac{e^{z_k}}{\sum_{j=1}^{3} e^{z_j}}.
+\end{equation}
+
+Como las etiquetas son números enteros, se usa la entropía cruzada categórica dispersa, que penaliza la probabilidad baja que el modelo asigna a la clase correcta $y_i$:
+
+\begin{equation}
+L = -\frac{1}{N}\sum_{i=1}^{N}\log p_{i,y_i}.
+\end{equation}
+
+El entrenamiento utiliza el optimizador Adam con una tasa de aprendizaje de 0.001, lotes de 32 imágenes y 15 épocas.
 
 \subsection{Evaluación del modelo base}
 
-\pendiente{curvas de entrenamiento y validación, exactitud en validación y prueba, matriz de confusión y análisis de errores.}
+La Figura~\ref{fig:curvas_base} muestra la evolución del entrenamiento. La exactitud en entrenamiento llega a 100\% desde la época 8, y la pérdida de validación baja hasta 0.004 y se mantiene prácticamente estable (entre 0.0040 y 0.0044), por lo que no se observa el deterioro de la validación típico del sobreajuste.
 
-\subsection{Mejoras al modelo}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{figuras/curvas_cnn_base.png}
+    \caption{Exactitud y pérdida por época de la CNN base, en entrenamiento y validación.}
+    \label{fig:curvas_base}
+\end{figure}
 
-\pendiente{documentar una a una las mejoras probadas (aumento de datos, Dropout, BatchNorm, regularización L2, early stopping, ajuste de la tasa de aprendizaje y de la arquitectura), cuáles funcionaron y por qué.}
+En el conjunto de validación el modelo obtuvo una exactitud de 99.84\% (F1 macro de 0.9985) y en el de prueba de 99.53\% (F1 macro de 0.9953), con un F1 de 0.996, 0.993 y 0.997 para anime, cartoon y human, respectivamente. La matriz de confusión en prueba (Figura~\ref{fig:matrices}) muestra 6 errores en 1,281 imágenes: 3 de anime clasificadas como cartoon, 2 de cartoon clasificadas como human y 1 de human clasificada como cartoon.
+
+Estos valores son muy altos, pero, como se muestra en la sección de predicciones con imágenes nuevas, solo describen el desempeño con imágenes parecidas a las del conjunto de datos.
 
 \subsection{Transferencia de aprendizaje}
 
-\pendiente{describir la arquitectura preentrenada utilizada, la cabeza de clasificación añadida, el entrenamiento con la base congelada y el ajuste fino posterior.}
+Como la CNN base solo acertó 2 de las 8 imágenes externas, se probó una red preentrenada. La transferencia de aprendizaje aprovecha las características visuales que aprendió una red entrenada con un conjunto de datos muy grande: las primeras capas detectan rasgos generales, como bordes y texturas, que sirven para muchas tareas, y solo las últimas capas se ajustan al problema nuevo. Gando et al.~\cite{gando} aplican esta estrategia a un problema cercano, distinguir ilustraciones de fotografías: ajustan las últimas capas de AlexNet preentrenada con ImageNet, con 20,000 imágenes, y reportan una exactitud de 96.8\%, superior a la de las redes convolucionales entrenadas desde cero que compararon, la mejor de las cuales alcanzó 93.0\%.
+
+Se utilizó EfficientNetB0~\cite{efficientnet} con los pesos preentrenados en ImageNet~\cite{imagenet}. EfficientNet escala de forma conjunta la profundidad, el ancho y la resolución de la red, y la versión B0 tiene 4,049,571 parámetros sin su clasificador original. Se le quitó ese clasificador y se añadió una cabeza nueva, formada por una capa de agrupación promedio global y una capa densa de 3 neuronas con softmax (3,843 parámetros). Como se explicó en la sección de ETL, esta red recibe los píxeles en el rango $[0,255]$ sin dividirlos entre 255.
+
+El entrenamiento se hizo en dos fases. En la primera, la base se mantuvo congelada y solo se entrenó la cabeza, durante 8 épocas con Adam y una tasa de aprendizaje de 0.001. En la segunda se descongelaron las últimas 20 de las 238 capas de la base, dejando congeladas las capas de normalización por lotes, y se continuó el entrenamiento durante 10 épocas con una tasa de aprendizaje mucho menor (0.00001), para no alterar bruscamente los pesos preentrenados; en esta fase se entrenan 1,346,611 parámetros. Para poder atribuir los cambios a la red preentrenada, se usaron las mismas imágenes y particiones que en la CNN base, sin aumento de datos ni regularización adicional.
+
+La Figura~\ref{fig:curvas_tl} muestra el entrenamiento. En validación el modelo alcanzó una exactitud de 99.92\% (F1 macro de 0.9992) y en prueba de 99.92\% (F1 macro de 0.9992), con un único error en prueba, una imagen de human clasificada como cartoon (Figura~\ref{fig:matrices}), frente a los 6 errores de la CNN base. Los resultados con imágenes externas se presentan en la sección de predicciones con imágenes nuevas.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{figuras/curvas_efficientnet.png}
+    \caption{Exactitud y pérdida por época de EfficientNetB0. La línea punteada marca el inicio del ajuste fino.}
+    \label{fig:curvas_tl}
+\end{figure}
+
+\subsection{Mejoras al modelo}
+
+\pendiente{documentar una a una las mejoras restantes (regularización con Dropout, L2 y early stopping, ajuste de hiperparámetros y aumento de datos), cuáles funcionaron y por qué.}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % PREDICCIONES
@@ -254,26 +327,26 @@ Es un conjunto muy pequeño, por lo que permite observar patrones pero no estima
 
 \subsection{Resultados con imágenes externas}
 
-La Tabla~\ref{tab:externas} y la Figura~\ref{fig:externas} muestran las predicciones. El modelo acertó 2 de las 8 imágenes (exactitud de 25.0\% y F1 macro de 0.133), frente a 99.53\% de exactitud en el conjunto de prueba.
+La Tabla~\ref{tab:externas} muestra las predicciones de los dos modelos y la Figura~\ref{fig:externas} las de la CNN base. La CNN base acertó 2 de las 8 imágenes (exactitud de 25.0\% y F1 macro de 0.133), frente a 99.53\% de exactitud en el conjunto de prueba.
 
 \begin{table}[H]
-\caption{Predicciones de la CNN base sobre imágenes externas}
+\caption{Predicciones sobre imágenes externas (entre paréntesis, la confianza de EfficientNetB0)}
 \label{tab:externas}
 \centering
 \footnotesize
 \resizebox{\columnwidth}{!}{%
-\begin{tabular}{llcc}
+\begin{tabular}{llccc}
 \hline
-\textbf{Imagen} & \textbf{Descripción} & \textbf{Real} & \textbf{Predicción} \\
+\textbf{Imagen} & \textbf{Descripción} & \textbf{Real} & \textbf{CNN base} & \textbf{EfficientNetB0} \\
 \hline
-\texttt{Caricaturas2.jpg} & Collage de personajes de caricaturas & cartoon & cartoon \\
-\texttt{caricatura1.jpg} & Caricatura dibujada de una persona & cartoon & cartoon \\
-\texttt{pruebaAnime.jpg} & Ilustración anime horizontal & anime & cartoon \\
-\texttt{pruebaAnime2.jpg} & Ilustración anime de personaje & anime & cartoon \\
-\texttt{pruebaAnime3.jpg} & Viñeta de manga en blanco y negro & anime & cartoon \\
-\texttt{pruebaAnime6.jpg} & Rostro en arte pixelado & anime & cartoon \\
-\texttt{pruebaPersona.jpg} & Modelo anatómico 3D & human & cartoon \\
-\texttt{pruebaPersona2.jpg} & Fotografía de un hombre & human & cartoon \\
+\texttt{Caricaturas2.jpg} & Collage de personajes de caricaturas & cartoon & cartoon & cartoon (100\%) \\
+\texttt{caricatura1.jpg} & Caricatura dibujada de una persona & cartoon & cartoon & cartoon (100\%) \\
+\texttt{pruebaAnime.jpg} & Ilustración anime horizontal & anime & cartoon & cartoon (100\%) \\
+\texttt{pruebaAnime2.jpg} & Ilustración anime de personaje & anime & cartoon & cartoon (100\%) \\
+\texttt{pruebaAnime3.jpg} & Viñeta de manga en blanco y negro & anime & cartoon & cartoon (94.4\%) \\
+\texttt{pruebaAnime6.jpg} & Rostro en arte pixelado & anime & cartoon & anime (97.1\%) \\
+\texttt{pruebaPersona.jpg} & Modelo anatómico 3D & human & cartoon & cartoon (97.6\%) \\
+\texttt{pruebaPersona2.jpg} & Fotografía de un hombre & human & cartoon & human (80.7\%) \\
 \hline
 \end{tabular}
 }
@@ -282,19 +355,21 @@ La Tabla~\ref{tab:externas} y la Figura~\ref{fig:externas} muestran las predicci
 \begin{figure}[H]
     \centering
     \includegraphics[width=\columnwidth]{figuras/externas.png}
-    \caption{Predicciones sobre las imágenes externas (en verde los aciertos y en rojo los errores).}
+    \caption{Predicciones de la CNN base sobre las imágenes externas (en verde los aciertos y en rojo los errores).}
     \label{fig:externas}
 \end{figure}
 
-Las dos imágenes acertadas son las de cartoon. Los 6 errores se clasificaron como cartoon, ninguno como anime ni como human, y todas las predicciones tienen una confianza de al menos 99.999\%, es decir, el modelo se equivoca con total seguridad.
+En la CNN base, las dos imágenes acertadas son las de cartoon. Los 6 errores se clasificaron como cartoon, ninguno como anime ni como human, y todas las predicciones tienen una confianza de al menos 99.999\%, es decir, el modelo se equivoca con total seguridad.
 
 Para saber si este resultado se debe al relleno (padding) de las imágenes no cuadradas, se repitió la evaluación con dos variantes sin barras de relleno: estirando la imagen a un cuadrado y recortando su centro. Las predicciones fueron las mismas en las tres variantes, por lo que el padding no explica estos errores.
 
-El resultado indica que la exactitud casi perfecta en validación y prueba no se mantiene con imágenes de otro origen. Una posible explicación, que este experimento no comprueba, es que el modelo aprendió una noción estrecha de las clases anime y human (rostros recortados de un estilo y una toma particulares) y que cartoon, la clase más heterogénea según el análisis exploratorio, funciona como clase por defecto para todo lo que no se parece a esos ejemplos. Esto motiva las mejoras de las siguientes secciones, que se comparan también con este conjunto externo y no solo con el de validación.
+El resultado indica que la exactitud casi perfecta en validación y prueba no se mantiene con imágenes de otro origen. Una posible explicación, que este experimento no comprueba, es que el modelo aprendió una noción estrecha de las clases anime y human (rostros recortados de un estilo y una toma particulares) y que cartoon, la clase más heterogénea según el análisis exploratorio, funciona como clase por defecto para todo lo que no se parece a esos ejemplos. Esto motivó probar una red preentrenada y las demás mejoras, que se comparan también con este conjunto externo y no solo con el de validación.
+
+Con EfficientNetB0 se acertaron 4 de las 8 imágenes (exactitud de 50.0\% y F1 macro de 0.522). Además de las dos caricaturas, acertó el rostro en arte pixelado (anime) y la fotografía del hombre (human), esta última con la confianza más baja de todas (80.7\%). Siguió fallando con las dos ilustraciones anime de estilo moderno, la viñeta de manga y el modelo anatómico, y todos sus errores se clasificaron de nuevo como cartoon, aunque con una confianza algo menor en algunos casos (94.4\% y 97.6\%). Con solo 8 imágenes, la diferencia de 2 aciertos no es concluyente: sugiere que la transferencia de aprendizaje ayuda algo, pero no resuelve el problema. Una posible explicación, que no se comprobó, es que el clasificador se entrena con ejemplos de anime y human muy estrechos (rostros recortados de un estilo particular), por lo que las características preentrenadas por sí solas no corrigen la falta de diversidad de los datos.
 
 \subsection{Interfaz web}
 
-Las predicciones también pueden realizarse mediante una interfaz web. Un servidor en Flask expone el modelo entrenado, y una página (HTML, CSS y JavaScript) permite subir una imagen y muestra la clase predicha, la probabilidad de cada clase y la imagen tal como la ve el modelo. El servidor usa el mismo módulo de preprocesado que el entrenamiento, para que el modelo reciba lo mismo que vio al aprender.
+Las predicciones también pueden realizarse mediante una interfaz web. Un servidor en Flask expone el modelo entrenado, y una página (HTML, CSS y JavaScript) permite subir una imagen y muestra la clase predicha, la probabilidad de cada clase y la imagen tal como la ve el modelo. El servidor usa el mismo módulo de preprocesado que el entrenamiento, para que el modelo reciba lo mismo que vio al aprender. Por ahora la interfaz utiliza la CNN base.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % RESULTADOS
@@ -302,7 +377,36 @@ Las predicciones también pueden realizarse mediante una interfaz web. Un servid
 
 \section{Resultados}
 
-\pendiente{tabla comparativa de exactitud en entrenamiento, validación y prueba para cada modelo, y conclusiones.}
+La Tabla~\ref{tab:resumen_final} resume la exactitud y el F1 macro de los modelos en los tres conjuntos de evaluación, y la Figura~\ref{fig:matrices} muestra sus matrices de confusión en el conjunto de prueba.
+
+\begin{table}[H]
+\caption{Exactitud y F1 macro por modelo y conjunto de evaluación}
+\label{tab:resumen_final}
+\centering
+\footnotesize
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lcccccc}
+\hline
+ & \multicolumn{2}{c}{\textbf{Validación}} & \multicolumn{2}{c}{\textbf{Prueba}} & \multicolumn{2}{c}{\textbf{Externas (8)}} \\
+\textbf{Modelo} & Exactitud & F1 & Exactitud & F1 & Exactitud & F1 \\
+\hline
+CNN base (desde cero) & 0.9984 & 0.9985 & 0.9953 & 0.9953 & 0.2500 & 0.1333 \\
+EfficientNetB0 (transfer learning) & 0.9992 & 0.9992 & 0.9992 & 0.9992 & 0.5000 & 0.5222 \\
+\hline
+\end{tabular}
+}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{figuras/matrices_prueba.png}
+    \caption{Matrices de confusión de la CNN base y de EfficientNetB0 en el conjunto de prueba.}
+    \label{fig:matrices}
+\end{figure}
+
+En validación y en prueba ambos modelos superan el 99.5\% y la diferencia entre ellos es de unas pocas imágenes, por lo que esos conjuntos ya no permiten distinguir entre modelos. Con las imágenes externas, en cambio, el desempeño cae de forma notable en los dos (25.0\% y 50.0\%), y EfficientNetB0 es mejor, aunque con solo 8 imágenes la diferencia no es concluyente. Por eso, la evaluación con imágenes externas es la que se usa para comparar las mejoras siguientes.
+
+\pendiente{agregar los modelos con regularización y con aumento de datos, y las conclusiones finales.}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % REFERENCIAS
@@ -331,6 +435,15 @@ Pillow (PIL Fork), ``2.7.0 release notes,'' Pillow Documentation.
 \bibitem{aliasing}
 G. Parmar, R. Zhang and J.-Y. Zhu, ``On aliased resizing and surprising subtleties in GAN evaluation,'' arXiv:2104.11222, 2021.
 [Online]. Available: \url{https://arxiv.org/abs/2104.11222}
+
+\bibitem{gando}
+G. Gando, T. Yamada, H. Sato, S. Oyama and M. Kurihara, ``Fine-tuning deep convolutional neural networks for distinguishing illustrations from photographs,'' \textit{Expert Systems with Applications}, vol. 66, pp. 295--301, 2016, doi: 10.1016/j.eswa.2016.08.057.
+
+\bibitem{efficientnet}
+M. Tan and Q. Le, ``EfficientNet: Rethinking model scaling for convolutional neural networks,'' in \textit{Proc. 36th Int. Conf. Machine Learning (ICML)}, 2019, pp. 6105--6114.
+
+\bibitem{imagenet}
+J. Deng, W. Dong, R. Socher, L.-J. Li, K. Li and L. Fei-Fei, ``ImageNet: A large-scale hierarchical image database,'' in \textit{Proc. IEEE Conf. Computer Vision and Pattern Recognition (CVPR)}, 2009, pp. 248--255.
 
 \end{thebibliography}
 
