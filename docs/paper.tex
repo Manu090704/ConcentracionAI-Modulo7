@@ -208,7 +208,7 @@ Cada imagen se convierte a RGB de tres canales y se deja en un tamaño único de
 
 Como las imágenes de cartoon no son cuadradas en su mayoría, para llegar a un cuadrado se utiliza relleno (padding): se reduce la imagen conservando su proporción, de modo que su lado mayor mida 128 píxeles, y se centra sobre un lienzo cuadrado rellenado con el color mediano de su propio borde, para que las bandas resultantes sean poco llamativas. De esta forma no se deforman las imágenes.
 
-Sin embargo, como solo el 12\% de las imágenes de cartoon son cuadradas y el 100\% de anime y human lo son, el relleno hace que casi todas las imágenes de cartoon tengan bandas y ninguna de las otras clases, lo cual puede convertirse en un atajo para el modelo.
+Sin embargo, como solo el 12\% de las imágenes de cartoon son cuadradas y el 100\% de anime y human lo son, el relleno hace que casi todas las imágenes de cartoon tengan bandas y ninguna de las otras clases, lo cual puede convertirse en un atajo para el modelo. Por ello, en una sección posterior se compara con la alternativa de estirar la imagen a un cuadrado.
 
 \subsection{Carga y almacenamiento en caché}
 
@@ -358,9 +358,87 @@ Con las imágenes externas, ningún modelo cambió su clase predicha en ninguna 
 
 Este resultado es coherente con la naturaleza del problema. Dropout combate el sobreajuste, y en estos modelos la exactitud de entrenamiento y la de validación ya eran casi iguales, de modo que no había una brecha que cerrar. Reducir la coadaptación entre neuronas no corrige que las imágenes externas sean distintas a las del conjunto de datos, que es donde se concentra el error. Dropout se probó y se documenta, pero no aporta una mejora medible en este caso.
 
-\subsection{Otras mejoras}
+\subsection{Tratamiento de los datos: estirar y aumento de datos}
 
-\pendiente{documentar el aumento de datos (y, si se prueban, L2, early stopping y el ajuste de hiperparámetros), cuáles funcionaron y por qué.}
+Los experimentos anteriores sugieren que el problema no está tanto en el modelo como en la poca diversidad de los datos de entrenamiento. Por ello se probaron dos cambios en el tratamiento de los datos, sobre EfficientNetB0 (el mejor modelo hasta ahora, sin Dropout, que no aportó mejora) y con el mismo entrenamiento en dos fases. Para poder explicar cuál de los dos cambios funciona, se probaron por separado y juntos, lo que da las cuatro variantes de la Tabla~\ref{tab:variantes_datos}.
+
+\begin{table}[H]
+\caption{Variantes de tratamiento de los datos (todas con EfficientNetB0)}
+\label{tab:variantes_datos}
+\centering
+\footnotesize
+\begin{tabular}{lcc}
+\hline
+\textbf{Variante} & \textbf{Redimensionado} & \textbf{Aumento de datos} \\
+\hline
+EfficientNetB0 (anterior) & padding & no \\
++ estirar & estirar & no \\
++ aumento (padding) & padding & sí \\
++ estirar y aumento & estirar & sí \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{Estirar.} En lugar de conservar la proporción y rellenar con bandas, la imagen se redimensiona directamente a $128 \times 128$, con el mismo filtro de Lanczos. Esto elimina las bandas de relleno, que en el conjunto de datos solo aparecían en las imágenes de cartoon no cuadradas y podían servir de atajo, a cambio de deformar las imágenes que no son cuadradas.
+
+\textbf{Aumento de datos.} Consiste en aplicar transformaciones aleatorias a las imágenes de entrenamiento, distintas en cada época, de modo que el modelo vea muchas variantes de cada imagen. Se aplica imagen por imagen y solo en entrenamiento; la validación y la prueba no se modifican. Las transformaciones se eligieron para atacar los atajos identificados en el análisis exploratorio (composición y proporción, color y nitidez):
+
+\begin{itemize}
+    \item volteo horizontal;
+    \item rotación de hasta 11 grados;
+    \item zoom de hasta 25\% en cada eje de forma independiente, lo que también varía la proporción de la imagen;
+    \item traslación de hasta 10\%;
+    \item cambios de brillo, contraste y saturación;
+    \item conversión a escala de grises, con probabilidad de 0.15 (por ejemplo, para manga o fotografías antiguas);
+    \item baja resolución, con probabilidad de 0.5: la imagen se reduce a entre 35\% y 100\% de su tamaño y se vuelve a ampliar, para que la nitidez no delate la clase.
+\end{itemize}
+
+Los huecos que dejan la rotación, el zoom y la traslación se rellenan reflejando la imagen. La Figura~\ref{fig:aumento} muestra ejemplos.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{figuras/aumento_datos.png}
+    \caption{Imagen original (estirada) de cada clase y seis versiones aumentadas.}
+    \label{fig:aumento}
+\end{figure}
+
+La Figura~\ref{fig:curvas_datos} muestra el entrenamiento. Sin aumento de datos, la exactitud de entrenamiento llega a 100\% y la de validación queda por debajo. Con aumento, las curvas de entrenamiento y de validación casi se superponen y la exactitud de entrenamiento no llega a 100\% (99.87\% y 99.75\% al final), que es el efecto regularizador esperado.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{figuras/curvas_datos.png}
+    \caption{Exactitud y pérdida por época de las tres variantes nuevas. La línea punteada marca el inicio del ajuste fino.}
+    \label{fig:curvas_datos}
+\end{figure}
+
+En validación y prueba, las tres variantes nuevas rinden ligeramente peor que el modelo original (Tabla~\ref{tab:resumen_final}): 99.69\% frente a 99.92\% en validación, y entre 2 y 3 errores en prueba frente a 1. Es el costo esperable de entrenar con datos más variados, y son diferencias de una o dos imágenes.
+
+Con las imágenes externas (Tabla~\ref{tab:externas_datos}), estirar por sí solo no cambia ningún acierto (4 de 8), pero reduce la seguridad de los errores: la ilustración anime \texttt{pruebaAnime2.jpg}, clasificada como cartoon con 100\% de confianza, baja a 84\%. El aumento de datos sí corrige una imagen, la viñeta de manga en blanco y negro (\texttt{pruebaAnime3.jpg}), con lo que se llega a 5 de 8 (exactitud de 62.5\% y F1 macro de 0.635), tanto con padding como estirando. Esto es coherente con que el aumento incluye imágenes en escala de grises, aunque este experimento no lo comprueba. Combinar ambos cambios no mejora el resultado respecto al aumento solo (5 de 8) y reduce todavía más la confianza de los errores (54\% en \texttt{pruebaAnime2.jpg}).
+
+\begin{table}[H]
+\caption{Predicciones de las variantes de tratamiento de datos sobre imágenes externas (entre paréntesis, la confianza)}
+\label{tab:externas_datos}
+\centering
+\footnotesize
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccccc}
+\hline
+\textbf{Imagen} & \textbf{Real} & \textbf{Anterior} & \textbf{+ estirar} & \textbf{+ aumento} & \textbf{+ estirar y aumento} \\
+\hline
+\texttt{Caricaturas2.jpg} & cartoon & cartoon (100\%) & cartoon (100\%) & cartoon (100\%) & cartoon (100\%) \\
+\texttt{caricatura1.jpg} & cartoon & cartoon (100\%) & cartoon (100\%) & cartoon (100\%) & cartoon (99\%) \\
+\texttt{pruebaAnime.jpg} & anime & cartoon (100\%) & cartoon (90\%) & cartoon (91\%) & cartoon (85\%) \\
+\texttt{pruebaAnime2.jpg} & anime & cartoon (100\%) & cartoon (84\%) & cartoon (91\%) & cartoon (54\%) \\
+\texttt{pruebaAnime3.jpg} & anime & cartoon (94\%) & cartoon (99\%) & anime (91\%) & anime (69\%) \\
+\texttt{pruebaAnime6.jpg} & anime & anime (97\%) & anime (89\%) & anime (87\%) & anime (95\%) \\
+\texttt{pruebaPersona.jpg} & human & cartoon (98\%) & cartoon (100\%) & cartoon (99\%) & cartoon (100\%) \\
+\texttt{pruebaPersona2.jpg} & human & human (81\%) & human (100\%) & human (84\%) & human (96\%) \\
+\hline
+\end{tabular}
+}
+\end{table}
+
+En todas las variantes siguen fallando las dos ilustraciones anime de estilo moderno y el modelo anatómico, y todos los errores se clasificaron como cartoon. La mejora es modesta y poco concluyente: es un acierto más en 8 imágenes, cada modelo se entrenó una sola vez y las diferencias en validación y prueba son de una o dos imágenes. Una posible explicación de que el aumento de datos no corrija las ilustraciones anime modernas, que no se comprobó, es que en el conjunto de entrenamiento las imágenes de anime son solo rostros recortados: transformaciones como el zoom o la traslación varían lo que se ve de esos rostros, pero no crean personajes con cuerpo, fondos ni estilos que el conjunto no contiene. Resolverlo requeriría más diversidad en los propios datos de entrenamiento.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % PREDICCIONES
@@ -445,6 +523,9 @@ CNN base (desde cero) & 0.9984 & 0.9985 & 0.9953 & 0.9953 & 0.2500 & 0.1333 \\
 CNN + Dropout & 0.9984 & 0.9985 & 0.9961 & 0.9960 & 0.2500 & 0.1333 \\
 EfficientNetB0 (transfer learning) & 0.9992 & 0.9992 & 0.9992 & 0.9992 & 0.5000 & 0.5222 \\
 EfficientNetB0 + Dropout & 0.9992 & 0.9992 & 1.0000 & 1.0000 & 0.5000 & 0.5222 \\
+EfficientNetB0 + estirar & 0.9969 & 0.9968 & 0.9984 & 0.9984 & 0.5000 & 0.5222 \\
+EfficientNetB0 + aumento (padding) & 0.9969 & 0.9969 & 0.9984 & 0.9984 & 0.6250 & 0.6349 \\
+EfficientNetB0 + estirar y aumento & 0.9969 & 0.9968 & 0.9977 & 0.9976 & 0.6250 & 0.6349 \\
 \hline
 \end{tabular}
 }
@@ -457,13 +538,11 @@ EfficientNetB0 + Dropout & 0.9992 & 0.9992 & 1.0000 & 1.0000 & 0.5000 & 0.5222 \
     \label{fig:matrices}
 \end{figure}
 
-En validación y en prueba los cuatro modelos superan el 99.5\% y las diferencias entre ellos son de una o dos imágenes, por lo que esos conjuntos ya no permiten distinguir entre modelos. Con las imágenes externas, en cambio, el desempeño cae de forma notable (25.0\% en la CNN y 50.0\% en EfficientNetB0). La transferencia de aprendizaje mejora el resultado externo en 2 de las 8 imágenes, aunque con tan pocas imágenes esa diferencia no es concluyente. Dropout no cambió ninguna de las predicciones externas en ninguna de las dos arquitecturas. Por eso, la evaluación con imágenes externas es la que se usa para comparar las mejoras siguientes.
+En validación y en prueba todos los modelos superan el 99.5\% y las diferencias entre ellos son de una a tres imágenes, por lo que esos conjuntos no permiten distinguir entre modelos. Con las imágenes externas, en cambio, el desempeño cae de forma notable y sí aparecen diferencias: 25.0\% en la CNN (con o sin Dropout), 50.0\% en EfficientNetB0 (con o sin Dropout, o estirando) y 62.5\% con aumento de datos (con padding o estirando). Dropout no cambió ninguna predicción externa. La transferencia de aprendizaje y el aumento de datos mejoraron el resultado externo en 2 y en 1 de las 8 imágenes, respectivamente, lo cual no es concluyente con tan pocas imágenes. Ningún modelo resolvió las ilustraciones anime de estilo moderno. Por eso, la evaluación con imágenes externas es la que se usa para comparar los modelos.
 
-\pendiente{agregar el modelo con aumento de datos y las conclusiones finales.}
+\pendiente{agregar las conclusiones finales y decidir qué modelo usa la interfaz web.}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% REFERENCIAS
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%
 
 \begin{thebibliography}{99}
 

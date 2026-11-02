@@ -68,6 +68,14 @@ y abre <http://127.0.0.1:8000>. Se sube una imagen y la página muestra la clase
 
 Cada tasa de Dropout se fijó de antemano con un valor estándar y no se ajustó, para no sobreajustar a un conjunto externo tan pequeño. Cada modelo se entrenó una sola vez.
 
+**Tratamiento de los datos** (sección 10 del notebook). Sobre EfficientNetB0 sin Dropout, con el mismo entrenamiento en dos fases, se probaron dos cambios por separado y juntos:
+
+5. **+ estirar**: las imágenes se estiran a 128×128 en lugar de conservar la proporción con padding (elimina las bandas de relleno, que solo aparecían en las cartoon).
+6. **+ aumento de datos (padding)**: transformaciones aleatorias solo en entrenamiento: volteo, rotación (hasta 11°), zoom de hasta 25% con proporción variable, traslación, brillo/contraste/saturación, escala de grises (15%) y baja resolución (50%).
+7. **+ estirar y aumento de datos**: ambos cambios.
+
+Cada modelo se evalúa con el mismo redimensionado con que se entrenó. Las cachés de las dos versiones viven en `cache/pad_128` y `cache/stretch_128`.
+
 ## Resultados
 
 | Modelo | Validación (exactitud / F1) | Prueba (exactitud / F1) | Errores en prueba | Externas, 8 imágenes (exactitud / F1) |
@@ -76,8 +84,11 @@ Cada tasa de Dropout se fijó de antemano con un valor estándar y no se ajustó
 | CNN + Dropout | 99.84% / 0.9985 | 99.61% / 0.9960 | 5 | 25.0% / 0.133 |
 | EfficientNetB0 | 99.92% / 0.9992 | 99.92% / 0.9992 | 1 | 50.0% / 0.522 |
 | EfficientNetB0 + Dropout | 99.92% / 0.9992 | 100% / 1.0000 | 0 | 50.0% / 0.522 |
+| EfficientNetB0 + estirar | 99.69% / 0.9968 | 99.84% / 0.9984 | 2 | 50.0% / 0.522 |
+| EfficientNetB0 + aumento (padding) | 99.69% / 0.9969 | 99.84% / 0.9984 | 2 | 62.5% / 0.635 |
+| EfficientNetB0 + estirar y aumento | 99.69% / 0.9968 | 99.77% / 0.9976 | 3 | 62.5% / 0.635 |
 
-En validación y prueba los cuatro modelos superan el 99.5% y se distinguen por una o dos imágenes, así que esos conjuntos ya no sirven para compararlos.
+En validación y prueba todos los modelos superan el 99.5% y se distinguen por una a tres imágenes, así que esos conjuntos ya no sirven para compararlos.
 
 **Imágenes externas** (carpeta `imgExternas/`, sección 7 del notebook). Dos de las 10 imágenes son copias de imágenes del dataset (se detectan por contenido y se excluyen), así que quedan 8.
 
@@ -86,7 +97,12 @@ En validación y prueba los cuatro modelos superan el 99.5% y se distinguen por 
 
 - **Dropout no cambia ninguna predicción externa** en ninguna de las dos arquitecturas (mismos aciertos y mismos errores). Sí cambia las curvas de la CNN (su pérdida de entrenamiento final es 100 veces mayor y las curvas son más irregulares), pero no mejora la validación. Es coherente con que el problema no es un sobreajuste clásico: la exactitud de entrenamiento y la de validación ya eran casi iguales, y el error está en que las imágenes externas son distintas a las del dataset.
 
-Es un conjunto muy pequeño y las diferencias de 2 aciertos (transfer learning) o de 1 imagen en prueba (Dropout) no son concluyentes, pero indica que la exactitud en validación y prueba **no se mantiene con imágenes de otro origen**. El análisis exploratorio mostró que las clases difieren también en resolución, peso de archivo, color y composición, y la validación y la prueba comparten esos sesgos con el entrenamiento. Por eso las mejoras siguientes se comparan con las imágenes externas y no solo con la validación, que ya está saturada.
+- **Estirar** no cambia ningún acierto externo, pero baja la seguridad de los errores (una ilustración anime pasa de 100% a 84% de confianza como cartoon).
+- **El aumento de datos** corrige una imagen más (la viñeta de manga en blanco y negro), con padding o estirando: 5 de 8. Combinar ambos cambios no mejora respecto al aumento solo.
+- En validación y prueba las variantes con cambios en los datos rinden un poco peor (99.69% frente a 99.92% en validación), el costo esperable de entrenar con datos más variados.
+- **En todas las variantes siguen fallando** las ilustraciones anime de estilo moderno y el modelo anatómico, y todos los errores van a cartoon. Una posible explicación (sin comprobar) es que el anime del dataset son solo rostros recortados, y el aumento no crea personajes con cuerpo, fondos ni estilos nuevos.
+
+Es un conjunto muy pequeño y las diferencias de 1 o 2 aciertos (transfer learning, aumento de datos) o de 1 imagen en prueba (Dropout) no son concluyentes, pero indica que la exactitud en validación y prueba **no se mantiene con imágenes de otro origen**. El análisis exploratorio mostró que las clases difieren también en resolución, peso de archivo, color y composición, y la validación y la prueba comparten esos sesgos con el entrenamiento. Por eso las mejoras siguientes se comparan con las imágenes externas y no solo con la validación, que ya está saturada.
 
 ## Estado
 
@@ -96,5 +112,5 @@ Es un conjunto muy pequeño y las diferencias de 2 aciertos (transfer learning) 
 - [x] Prueba con imágenes externas al dataset
 - [x] Transferencia de aprendizaje (EfficientNetB0)
 - [x] Regularización con Dropout (sin mejora medible)
-- [ ] Aumento de datos
+- [x] Aumento de datos y estirar las imágenes (mejora modesta)
 - [ ] Reporte final
