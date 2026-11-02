@@ -14,6 +14,7 @@ Evidencia del módulo de Deep Learning. Una red neuronal convolucional (TensorFl
 │   └── web/
 │       ├── app.py             # servidor Flask: sirve la página y la ruta /predict
 │       └── static/            # interfaz: index.html, style.css, script.js
+├── imgExternas/               # imágenes que no son del dataset, para probar la generalización
 ├── modelos/                   # modelo entrenado (.keras) e historial de entrenamiento
 ├── docs/
 │   ├── paper.tex              # reporte (formato IEEE)
@@ -65,14 +66,20 @@ CNN base (3 bloques convolucionales, sin regularización ni aumento de datos):
 | Validación | 99.84% | 0.9985 |
 | Prueba | 99.53% | 0.9953 |
 
-Estos números deben leerse con cautela. El análisis exploratorio mostró que las clases difieren también en resolución, peso de archivo, color y composición, y que el relleno solo afecta a las cartoon. Por eso el modelo podría apoyarse en esas señales y no solo en el estilo visual, y la validación y la prueba comparten esos mismos sesgos.
+**Imágenes externas** (carpeta `imgExternas/`, sección 7 del notebook). Dos de las 10 imágenes son copias de imágenes del dataset (se detectan por contenido y se excluyen), así que quedan 8:
+
+| Conjunto | Exactitud | F1 macro |
+|---|---|---|
+| Imágenes externas (8) | 25.0% | 0.133 |
+
+Solo acierta las 2 caricaturas: las otras 6 (anime y personas) las clasifica como cartoon con una confianza de ~100%. Quitar el padding no cambia las predicciones. Es un conjunto muy pequeño, pero indica que la exactitud en validación y prueba **no se mantiene con imágenes de otro origen**: el análisis exploratorio mostró que las clases difieren también en resolución, peso de archivo, color y composición, y la validación y la prueba comparten esos sesgos con el entrenamiento.
 
 ## Estado
 
 - [x] Descarga de datos, EDA, deduplicación, partición y preprocesado
 - [x] CNN base y evaluación en validación y prueba
 - [x] Interfaz web
-- [ ] Prueba con imágenes externas al dataset
+- [x] Prueba con imágenes externas al dataset
 - [ ] Mejoras (aumento de datos, regularización, ajuste de hiperparámetros)
 - [ ] Transferencia de aprendizaje
 - [ ] Reporte final

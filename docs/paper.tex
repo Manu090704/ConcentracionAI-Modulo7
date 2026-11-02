@@ -244,7 +244,57 @@ La normalización de los píxeles al rango $[0,1]$ se realiza dividiendo entre 2
 
 \section{Predicciones con imágenes nuevas}
 
-\pendiente{probar el modelo con imágenes externas al conjunto de datos y mostrar algunas predicciones, para comprobar que el modelo no depende de la resolución ni del peso del archivo.}
+Las métricas de validación y de prueba se calculan con imágenes del mismo conjunto de datos, por lo que comparten con el entrenamiento los sesgos descritos en el análisis exploratorio (resolución, color y composición). Para comprobar si el modelo generaliza, se evaluó con imágenes que no pertenecen al conjunto de datos, con el mismo preprocesado que se usó al entrenar.
+
+\subsection{Conjunto de imágenes externas}
+
+Se reunieron 10 imágenes, y la clase de cada una se deduce del prefijo de su nombre de archivo. Antes de evaluar, se compararon por contenido (resumen MD5) con las imágenes del conjunto de datos, y se encontró que dos de ellas son copias exactas de imágenes de la partición de entrenamiento: una de anime (\texttt{anime/1001\_2000.jpg}) y una de human (\texttt{human/00000.png}). Como el modelo pudo verlas al entrenar, no sirven para medir la generalización y se excluyeron de la evaluación; se usaron solo como control, y el modelo las clasificó correctamente, como era de esperar. Quedan 8 imágenes externas: 4 de anime, 2 de cartoon y 2 de human. \pendiente{indicar el origen o la licencia de las imágenes externas.}
+
+Es un conjunto muy pequeño, por lo que permite observar patrones pero no estimar el desempeño con precisión. Además, una de las imágenes de human es un modelo anatómico de musculatura en 3D y no una fotografía, es decir, no corresponde al tipo de imagen de esa clase en el conjunto de entrenamiento.
+
+\subsection{Resultados con imágenes externas}
+
+La Tabla~\ref{tab:externas} y la Figura~\ref{fig:externas} muestran las predicciones. El modelo acertó 2 de las 8 imágenes (exactitud de 25.0\% y F1 macro de 0.133), frente a 99.53\% de exactitud en el conjunto de prueba.
+
+\begin{table}[H]
+\caption{Predicciones de la CNN base sobre imágenes externas}
+\label{tab:externas}
+\centering
+\footnotesize
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{llcc}
+\hline
+\textbf{Imagen} & \textbf{Descripción} & \textbf{Real} & \textbf{Predicción} \\
+\hline
+\texttt{Caricaturas2.jpg} & Collage de personajes de caricaturas & cartoon & cartoon \\
+\texttt{caricatura1.jpg} & Caricatura dibujada de una persona & cartoon & cartoon \\
+\texttt{pruebaAnime.jpg} & Ilustración anime horizontal & anime & cartoon \\
+\texttt{pruebaAnime2.jpg} & Ilustración anime de personaje & anime & cartoon \\
+\texttt{pruebaAnime3.jpg} & Viñeta de manga en blanco y negro & anime & cartoon \\
+\texttt{pruebaAnime6.jpg} & Rostro en arte pixelado & anime & cartoon \\
+\texttt{pruebaPersona.jpg} & Modelo anatómico 3D & human & cartoon \\
+\texttt{pruebaPersona2.jpg} & Fotografía de un hombre & human & cartoon \\
+\hline
+\end{tabular}
+}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{figuras/externas.png}
+    \caption{Predicciones sobre las imágenes externas (en verde los aciertos y en rojo los errores).}
+    \label{fig:externas}
+\end{figure}
+
+Las dos imágenes acertadas son las de cartoon. Los 6 errores se clasificaron como cartoon, ninguno como anime ni como human, y todas las predicciones tienen una confianza de al menos 99.999\%, es decir, el modelo se equivoca con total seguridad.
+
+Para saber si este resultado se debe al relleno (padding) de las imágenes no cuadradas, se repitió la evaluación con dos variantes sin barras de relleno: estirando la imagen a un cuadrado y recortando su centro. Las predicciones fueron las mismas en las tres variantes, por lo que el padding no explica estos errores.
+
+El resultado indica que la exactitud casi perfecta en validación y prueba no se mantiene con imágenes de otro origen. Una posible explicación, que este experimento no comprueba, es que el modelo aprendió una noción estrecha de las clases anime y human (rostros recortados de un estilo y una toma particulares) y que cartoon, la clase más heterogénea según el análisis exploratorio, funciona como clase por defecto para todo lo que no se parece a esos ejemplos. Esto motiva las mejoras de las siguientes secciones, que se comparan también con este conjunto externo y no solo con el de validación.
+
+\subsection{Interfaz web}
+
+Las predicciones también pueden realizarse mediante una interfaz web. Un servidor en Flask expone el modelo entrenado, y una página (HTML, CSS y JavaScript) permite subir una imagen y muestra la clase predicha, la probabilidad de cada clase y la imagen tal como la ve el modelo. El servidor usa el mismo módulo de preprocesado que el entrenamiento, para que el modelo reciba lo mismo que vio al aprender.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % RESULTADOS
