@@ -47,7 +47,7 @@ La primera ejecución genera `cache/`. Si ya existe un modelo en `modelos/`, el 
 python src/web/app.py
 ```
 
-y abre <http://127.0.0.1:8000>. Se sube una imagen y la página muestra la clase predicha, la probabilidad de cada clase y la imagen tal como la ve el modelo (128×128). Por ahora la interfaz usa la CNN base (`modelos/cnn_base_pad.keras`).
+y abre <http://127.0.0.1:8000>. Un selector permite elegir con cuál de los 7 modelos de `modelos/` se clasifica (por defecto, EfficientNetB0 + aumento de datos con padding, que acierta más imágenes externas). Se sube una imagen y la página muestra la clase predicha, la probabilidad de cada clase y la imagen tal como la ve el modelo (128×128). Al cambiar de modelo con una imagen ya cargada, la predicción se recalcula. Cada modelo recibe la imagen con el mismo redimensionado con que se entrenó (padding o estirar), que el servidor tiene registrado en `src/web/app.py`.
 
 **Reporte.** `docs/paper.tex` usa la clase `ieeeconf`, que no viene incluida y debe estar junto al archivo para compilarlo.
 

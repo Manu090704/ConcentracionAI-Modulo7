@@ -40,6 +40,22 @@ h1 { margin: 0 0 4px; font-size: 1.7rem; }
 h2 { margin: 24px 0 12px; font-size: 1.3rem; text-transform: capitalize; }
 .intro { margin: 0 0 24px; color: var(--muted); }
 
+.field { margin-bottom: 20px; }
+.field label { display: block; margin-bottom: 6px; font-weight: 600; }
+select {
+  width: 100%;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--text);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+select:disabled { opacity: 0.6; }
+.hint { margin: 6px 0 0; font-size: 0.85rem; color: var(--muted); }
+h2 + .hint { margin: -6px 0 12px; }
+
 .dropzone {
   display: block;
   padding: 36px 16px;

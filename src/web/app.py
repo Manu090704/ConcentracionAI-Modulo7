@@ -1,4 +1,4 @@
-"""Servidor web: sirve la interfaz (HTML/CSS/JS) y expone /predict, que usa el modelo entrenado.
+"""Servidor web: sirve la interfaz (HTML/CSS/JS) y expone /modelos y /predict, que usan los modelos entrenados.
 
 Ejecutar desde la raiz del repositorio:  python src/web/app.py
 y abrir http://127.0.0.1:8000
@@ -18,24 +18,59 @@ from PIL import Image  # noqa: E402
 
 from src.preprocesamiento import CLASSES, preprocess  # noqa: E402
 
-MODEL_PATH = ROOT / "modelos" / "cnn_base_pad.keras"
+MODELS_DIR = ROOT / "modelos"
 MAX_UPLOAD_MB = 10
 MAX_PIXELS = 50_000_000
+
+# Modelos disponibles. "preprocesado" debe coincidir con el redimensionado con que se entreno cada uno
+# ("pad": conserva la proporcion y rellena; "stretch": estira a cuadrado). "externas" son los aciertos
+# del modelo en las 8 imagenes externas del notebook (seccion 7 en adelante).
+MODELS = {
+    "efficientnetb0_pad_aug": {
+        "nombre": "EfficientNetB0 + aumento de datos (padding)",
+        "archivo": "efficientnetb0_pad_aug.keras", "preprocesado": "pad",
+        "detalle": "Transfer learning, padding y aumento de datos. Aciertos en imágenes externas: 5 de 8."},
+    "efficientnetb0_stretch_aug": {
+        "nombre": "EfficientNetB0 + estirar y aumento de datos",
+        "archivo": "efficientnetb0_stretch_aug.keras", "preprocesado": "stretch",
+        "detalle": "Transfer learning, imágenes estiradas y aumento de datos. Aciertos en imágenes externas: 5 de 8."},
+    "efficientnetb0_stretch": {
+        "nombre": "EfficientNetB0 + estirar",
+        "archivo": "efficientnetb0_stretch.keras", "preprocesado": "stretch",
+        "detalle": "Transfer learning con imágenes estiradas. Aciertos en imágenes externas: 4 de 8."},
+    "efficientnetb0_pad": {
+        "nombre": "EfficientNetB0 (transfer learning)",
+        "archivo": "efficientnetb0_pad.keras", "preprocesado": "pad",
+        "detalle": "Transfer learning con padding. Aciertos en imágenes externas: 4 de 8."},
+    "efficientnetb0_dropout_pad": {
+        "nombre": "EfficientNetB0 + Dropout",
+        "archivo": "efficientnetb0_dropout_pad.keras", "preprocesado": "pad",
+        "detalle": "Transfer learning con padding y Dropout. Aciertos en imágenes externas: 4 de 8."},
+    "cnn_dropout_pad": {
+        "nombre": "CNN propia + Dropout",
+        "archivo": "cnn_dropout_pad.keras", "preprocesado": "pad",
+        "detalle": "Red entrenada desde cero con Dropout. Aciertos en imágenes externas: 2 de 8."},
+    "cnn_base_pad": {
+        "nombre": "CNN propia (modelo base)",
+        "archivo": "cnn_base_pad.keras", "preprocesado": "pad",
+        "detalle": "Red entrenada desde cero, sin regularización. Aciertos en imágenes externas: 2 de 8."},
+}
+AVAILABLE = {k: v for k, v in MODELS.items() if (MODELS_DIR / v["archivo"]).exists()}
+DEFAULT_MODEL = next(iter(AVAILABLE), None)
 
 app = Flask(__name__, static_folder="static", static_url_path="")
 app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_MB * 1024 * 1024
 
-_model = None
-_model_lock = threading.Lock()
+_loaded = {}
+_lock = threading.Lock()
 
 
-def predict_probabilities(x):
-    """Carga el modelo la primera vez y devuelve las probabilidades de cada clase."""
-    global _model
-    with _model_lock:
-        if _model is None:
-            _model = keras.models.load_model(MODEL_PATH)
-        return _model.predict(x[None], verbose=0)[0]
+def predict_probabilities(model_id, x):
+    """Carga el modelo la primera vez que se pide y devuelve las probabilidades de cada clase."""
+    with _lock:
+        if model_id not in _loaded:
+            _loaded[model_id] = keras.models.load_model(MODELS_DIR / AVAILABLE[model_id]["archivo"], compile=False)
+        return _loaded[model_id].predict(x[None], verbose=0)[0]
 
 
 @app.get("/")
@@ -43,8 +78,19 @@ def index():
     return app.send_static_file("index.html")
 
 
+@app.get("/modelos")
+def list_models():
+    return jsonify(
+        predeterminado=DEFAULT_MODEL,
+        modelos=[{"id": k, "nombre": v["nombre"], "detalle": v["detalle"]} for k, v in AVAILABLE.items()],
+    )
+
+
 @app.post("/predict")
 def predict():
+    model_id = request.form.get("modelo", DEFAULT_MODEL)
+    if model_id not in AVAILABLE:
+        return jsonify(error="Modelo no válido."), 400
     file = request.files.get("imagen")
     if file is None or file.filename == "":
         return jsonify(error="No se recibio ninguna imagen."), 400
@@ -52,11 +98,11 @@ def predict():
         image = Image.open(file.stream)
         if image.width * image.height > MAX_PIXELS:
             return jsonify(error="La imagen es demasiado grande."), 400
-        x = preprocess(image)
+        x = preprocess(image, mode=AVAILABLE[model_id]["preprocesado"])
     except Exception:
         return jsonify(error="No se pudo leer el archivo como imagen."), 400
 
-    probs = predict_probabilities(x)
+    probs = predict_probabilities(model_id, x)
     best = int(probs.argmax())
 
     buffer = io.BytesIO()
@@ -66,6 +112,8 @@ def predict():
         clase=CLASSES[best],
         probabilidades={c: float(p) for c, p in zip(CLASSES, probs)},
         imagen_procesada=processed,
+        modelo=model_id,
+        modelo_nombre=AVAILABLE[model_id]["nombre"],
     )
 
 
@@ -75,6 +123,9 @@ def too_large(_):
 
 
 if __name__ == "__main__":
-    if not MODEL_PATH.exists():
-        sys.exit(f"No se encontro el modelo en {MODEL_PATH}. Entrenalo desde el notebook primero.")
+    if not AVAILABLE:
+        sys.exit(f"No se encontro ningun modelo en {MODELS_DIR}. Entrenalos desde el notebook primero.")
+    missing = [v["archivo"] for k, v in MODELS.items() if k not in AVAILABLE]
+    if missing:
+        print("Aviso: faltan estos modelos y no aparecerán en la lista:", ", ".join(missing))
     app.run(host="127.0.0.1", port=8000)

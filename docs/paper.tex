@@ -498,7 +498,7 @@ Con EfficientNetB0 se acertaron 4 de las 8 imágenes (exactitud de 50.0\% y F1 m
 
 \subsection{Interfaz web}
 
-Las predicciones también pueden realizarse mediante una interfaz web. Un servidor en Flask expone el modelo entrenado, y una página (HTML, CSS y JavaScript) permite subir una imagen y muestra la clase predicha, la probabilidad de cada clase y la imagen tal como la ve el modelo. El servidor usa el mismo módulo de preprocesado que el entrenamiento, para que el modelo reciba lo mismo que vio al aprender. Por ahora la interfaz utiliza la CNN base.
+Las predicciones también pueden realizarse mediante una interfaz web. Un servidor en Flask expone los modelos entrenados, y una página (HTML, CSS y JavaScript) permite elegir el modelo en un selector, subir una imagen y ver la clase predicha, la probabilidad de cada clase y la imagen tal como la ve el modelo. Al cambiar de modelo con una imagen ya cargada, la predicción se recalcula. El servidor usa el mismo módulo de preprocesado que el entrenamiento, y a cada modelo le aplica el redimensionado con que se entrenó (padding o estirar), para que reciba lo mismo que vio al aprender.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % RESULTADOS
@@ -540,7 +540,7 @@ EfficientNetB0 + estirar y aumento & 0.9969 & 0.9968 & 0.9977 & 0.9976 & 0.6250 
 
 En validación y en prueba todos los modelos superan el 99.5\% y las diferencias entre ellos son de una a tres imágenes, por lo que esos conjuntos no permiten distinguir entre modelos. Con las imágenes externas, en cambio, el desempeño cae de forma notable y sí aparecen diferencias: 25.0\% en la CNN (con o sin Dropout), 50.0\% en EfficientNetB0 (con o sin Dropout, o estirando) y 62.5\% con aumento de datos (con padding o estirando). Dropout no cambió ninguna predicción externa. La transferencia de aprendizaje y el aumento de datos mejoraron el resultado externo en 2 y en 1 de las 8 imágenes, respectivamente, lo cual no es concluyente con tan pocas imágenes. Ningún modelo resolvió las ilustraciones anime de estilo moderno. Por eso, la evaluación con imágenes externas es la que se usa para comparar los modelos.
 
-\pendiente{agregar las conclusiones finales y decidir qué modelo usa la interfaz web.}
+\pendiente{agregar las conclusiones finales.}
 
 %%%%%%%%%%%%%%%%
 

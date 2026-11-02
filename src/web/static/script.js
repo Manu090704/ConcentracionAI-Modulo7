@@ -7,9 +7,39 @@ const verdict = document.getElementById("verdict");
 const original = document.getElementById("original");
 const processed = document.getElementById("processed");
 const bars = document.getElementById("bars");
+const modelSelect = document.getElementById("model");
+const modelDetail = document.getElementById("model-detail");
+const usedModel = document.getElementById("used-model");
 
 const IDLE_TEXT = "Haz clic o arrastra una imagen aquí";
 let originalUrl = null;
+let lastFile = null;   // ultima imagen elegida, para volver a clasificarla al cambiar de modelo
+let models = [];
+
+function updateModelDetail() {
+  const model = models.find((m) => m.id === modelSelect.value);
+  modelDetail.textContent = model ? model.detalle : "";
+}
+
+async function loadModels() {
+  try {
+    const response = await fetch("/modelos");
+    const data = await response.json();
+    if (!response.ok || data.modelos.length === 0) throw new Error("sin modelos");
+    models = data.modelos;
+    modelSelect.replaceChildren(...models.map((m) => {
+      const option = document.createElement("option");
+      option.value = m.id;
+      option.textContent = m.nombre;
+      return option;
+    }));
+    modelSelect.value = data.predeterminado;
+    modelSelect.disabled = false;
+    updateModelDetail();
+  } catch {
+    showError("No se pudo cargar la lista de modelos.");
+  }
+}
 
 function showError(message) {
   errorBox.textContent = message;
@@ -45,6 +75,7 @@ function renderBars(probabilities) {
 function render(data, fileUrl) {
   const confidence = data.probabilidades[data.clase];
   verdict.textContent = `Predicción: ${data.clase} (${(confidence * 100).toFixed(1)}%)`;
+  usedModel.textContent = `Modelo: ${data.modelo_nombre}`;
   original.src = fileUrl;
   processed.src = data.imagen_procesada;
   renderBars(data.probabilidades);
@@ -57,6 +88,11 @@ async function classify(file) {
     showError("El archivo seleccionado no es una imagen.");
     return;
   }
+  if (modelSelect.disabled || !modelSelect.value) {
+    showError("Espera a que se cargue la lista de modelos.");
+    return;
+  }
+  lastFile = file;
 
   dropzone.classList.add("busy");
   dropzoneText.textContent = "Analizando…";
@@ -66,6 +102,7 @@ async function classify(file) {
 
   const form = new FormData();
   form.append("imagen", file);
+  form.append("modelo", modelSelect.value);
 
   try {
     const response = await fetch("/predict", { method: "POST", body: form });
@@ -81,6 +118,11 @@ async function classify(file) {
     dropzoneText.textContent = IDLE_TEXT;
   }
 }
+
+modelSelect.addEventListener("change", () => {
+  updateModelDetail();
+  if (lastFile) classify(lastFile);
+});
 
 input.addEventListener("change", () => {
   if (input.files.length > 0) classify(input.files[0]);
@@ -103,3 +145,5 @@ dropzone.addEventListener("drop", (event) => {
   const file = event.dataTransfer.files[0];
   if (file) classify(file);
 });
+
+loadModels();

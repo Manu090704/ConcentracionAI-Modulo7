@@ -12,6 +12,14 @@
     <h1>Anime, cartoon o human</h1>
     <p class="intro">Sube una imagen y la red convolucional indica a cuál de las tres clases pertenece.</p>
 
+    <div class="field">
+      <label for="model">Modelo</label>
+      <select id="model" disabled>
+        <option>Cargando modelos…</option>
+      </select>
+      <p id="model-detail" class="hint"></p>
+    </div>
+
     <label id="dropzone" class="dropzone" for="file">
       <input id="file" class="visually-hidden" type="file" accept="image/*">
       <span id="dropzone-text">Haz clic o arrastra una imagen aquí</span>
@@ -21,6 +29,7 @@
 
     <section id="result" hidden>
       <h2 id="verdict"></h2>
+      <p id="used-model" class="hint"></p>
       <div class="images">
         <figure>
           <img id="original" alt="Imagen original">
