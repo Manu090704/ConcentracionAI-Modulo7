@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Anime, cartoon o human</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>Anime, cartoon o human</h1>
+    <p class="intro">Sube una imagen y la red convolucional indica a cuál de las tres clases pertenece.</p>
+
+    <label id="dropzone" class="dropzone" for="file">
+      <input id="file" class="visually-hidden" type="file" accept="image/*">
+      <span id="dropzone-text">Haz clic o arrastra una imagen aquí</span>
+    </label>
+
+    <p id="error" class="error" role="alert" hidden></p>
+
+    <section id="result" hidden>
+      <h2 id="verdict"></h2>
+      <div class="images">
+        <figure>
+          <img id="original" alt="Imagen original">
+          <figcaption>Imagen original</figcaption>
+        </figure>
+        <figure>
+          <img id="processed" class="pixelated" alt="Imagen tal como la ve el modelo">
+          <figcaption>Lo que ve el modelo (128×128)</figcaption>
+        </figure>
+      </div>
+      <ul id="bars" class="bars"></ul>
+    </section>
+
+    <p class="note">
+      El modelo se entrenó con retratos de rostros (anime y personas) y con imágenes de caricaturas.
+      Con imágenes de otro tipo, como paisajes u objetos, el resultado no es confiable.
+    </p>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
