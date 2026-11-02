@@ -83,25 +83,27 @@ Dado que los datos son imágenes, se emplean redes neuronales convolucionales (C
 
 \section{Datos}
 
-El conjunto de datos utilizado corresponde a Anime vs Cartoon vs Human, disponible en Kaggle \cite{dataset}. Contiene 8,917 imágenes organizadas en tres carpetas, una por clase. Es un conjunto de datos reales y no un ejemplo de clase. La Tabla~\ref{tab:clases} resume su composición.
+El conjunto de datos utilizado corresponde a Anime vs Cartoon vs Human, disponible en Kaggle \cite{dataset}. Contiene 8,917 imágenes organizadas en tres carpetas, una por clase. La Tabla~\ref{tab:clases} resume su composición.
 
 \begin{table}[H]
 \caption{Composición del conjunto de datos original}
 \label{tab:clases}
 \centering
 \footnotesize
-\begin{tabular}{lcccc}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccccc}
 \hline
-\textbf{Clase} & \textbf{Imágenes} & \textbf{Formato} & \textbf{Ancho típico} & \textbf{Peso típico} \\
+\textbf{Clase} & \textbf{Imágenes} & \textbf{Formato} & \textbf{Ancho típico} & \textbf{Alto típico} & \textbf{Peso típico} \\
 \hline
-\texttt{anime}   & 3,004 & JPEG & 68 px   & 4 KB \\
-\texttt{cartoon} & 2,913 & PNG y JPEG & 258 px  & 55 KB \\
-\texttt{human}   & 3,000 & PNG  & 1,024 px & 1,334 KB \\
+\texttt{anime}   & 3,004 & JPEG       & 68 px    & 68 px    & 4 KB \\
+\texttt{cartoon} & 2,913 & PNG y JPEG & 258 px   & 180 px   & 55 KB \\
+\texttt{human}   & 3,000 & PNG        & 1,024 px & 1,024 px & 1,334 KB \\
 \hline
 \end{tabular}
+}
 \end{table}
 
-La Figura~\ref{fig:conteo} muestra que las clases están casi balanceadas, con entre 2,913 y 3,004 imágenes por clase, por lo que la exactitud (accuracy) es una métrica adecuada para evaluar el modelo.
+La Figura~\ref{fig:conteo} muestra que las clases están casi balanceadas, con entre 2,913 y 3,004 imágenes por clase, por lo que la exactitud (accuracy) es una métrica adecuada para comparar los modelos. Sin embargo, como la exactitud global puede ocultar un desempeño deficiente en una clase particular, se reportan además la precisión, la sensibilidad (recall) y la medida F1 por clase, así como el F1 macro, que promedia las tres clases con el mismo peso, y la matriz de confusión.
 
 \begin{figure}[H]
     \centering
