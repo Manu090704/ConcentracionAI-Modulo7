@@ -39,7 +39,7 @@ pip install -r requirements.txt
 
 **Notebook.** Abre `notebooks/evidencia.ipynb` y selecciona el kernel del entorno virtual. El dataset (~4 GB) se descarga la primera vez con `kagglehub`. Las rutas se calculan desde la raíz del repositorio, así que funciona sin importar desde qué carpeta se ejecute.
 
-La primera ejecución genera `cache/`. Si ya existe un modelo en `modelos/`, el notebook lo carga en lugar de volver a entrenar (se puede forzar con `RETRAIN = True` para la CNN base y `RETRAIN_TL = True` para EfficientNetB0).
+La primera ejecución genera `cache/`. Si ya existe un modelo en `modelos/`, el notebook lo carga en lugar de volver a entrenar (se puede forzar con `RETRAIN`, `RETRAIN_TL`, `RETRAIN_CNN_DO` o `RETRAIN_TL_DO`, según el modelo).
 
 **Interfaz web.** Desde la raíz del repositorio:
 
@@ -63,22 +63,30 @@ y abre <http://127.0.0.1:8000>. Se sube una imagen y la página muestra la clase
 
 1. **CNN base** (desde cero): tres bloques convolucionales (32, 64 y 128 filtros) y un clasificador denso, 3.3 millones de parámetros. Sin regularización ni aumento de datos. Adam (lr 0.001), 15 épocas.
 2. **EfficientNetB0 con transfer learning**: pesos de ImageNet y una cabeza nueva (`GlobalAveragePooling2D` y `Dense(3)`). Fase 1: base congelada, solo la cabeza (8 épocas, lr 0.001). Fase 2: ajuste fino de las últimas 20 capas de la base, sin tocar las `BatchNormalization` (10 épocas, lr 0.00001). Mismos datos y particiones, sin aumento de datos ni regularización adicional.
+3. **CNN + Dropout**: la CNN base con `Dropout(0.5)` después de la capa densa de 128 neuronas. Todo lo demás igual.
+4. **EfficientNetB0 + Dropout**: EfficientNetB0 con `Dropout(0.2)` después del `GlobalAveragePooling2D` (la tasa de su clasificador original). Todo lo demás igual.
+
+Cada tasa de Dropout se fijó de antemano con un valor estándar y no se ajustó, para no sobreajustar a un conjunto externo tan pequeño. Cada modelo se entrenó una sola vez.
 
 ## Resultados
 
-| Modelo | Validación (exactitud / F1) | Prueba (exactitud / F1) | Externas, 8 imágenes (exactitud / F1) |
-|---|---|---|---|
-| CNN base | 99.84% / 0.9985 | 99.53% / 0.9953 | 25.0% / 0.133 |
-| EfficientNetB0 | 99.92% / 0.9992 | 99.92% / 0.9992 | 50.0% / 0.522 |
+| Modelo | Validación (exactitud / F1) | Prueba (exactitud / F1) | Errores en prueba | Externas, 8 imágenes (exactitud / F1) |
+|---|---|---|---|---|
+| CNN base | 99.84% / 0.9985 | 99.53% / 0.9953 | 6 de 1,281 | 25.0% / 0.133 |
+| CNN + Dropout | 99.84% / 0.9985 | 99.61% / 0.9960 | 5 | 25.0% / 0.133 |
+| EfficientNetB0 | 99.92% / 0.9992 | 99.92% / 0.9992 | 1 | 50.0% / 0.522 |
+| EfficientNetB0 + Dropout | 99.92% / 0.9992 | 100% / 1.0000 | 0 | 50.0% / 0.522 |
 
-En prueba la CNN base comete 6 errores de 1,281 imágenes y EfficientNetB0 uno.
+En validación y prueba los cuatro modelos superan el 99.5% y se distinguen por una o dos imágenes, así que esos conjuntos ya no sirven para compararlos.
 
 **Imágenes externas** (carpeta `imgExternas/`, sección 7 del notebook). Dos de las 10 imágenes son copias de imágenes del dataset (se detectan por contenido y se excluyen), así que quedan 8.
 
 - La CNN base solo acierta las 2 caricaturas: las otras 6 (anime y personas) las clasifica como cartoon con una confianza de ~100%. Quitar el padding no cambia las predicciones.
 - EfficientNetB0 acierta 4 de 8 (las 2 caricaturas, un rostro anime pixelado y una foto de persona). Sigue fallando con ilustraciones anime modernas, una viñeta de manga y un modelo anatómico, y todos sus errores van a cartoon.
 
-Es un conjunto muy pequeño y la diferencia de 2 aciertos no es concluyente, pero indica que la exactitud en validación y prueba **no se mantiene con imágenes de otro origen**. El análisis exploratorio mostró que las clases difieren también en resolución, peso de archivo, color y composición, y la validación y la prueba comparten esos sesgos con el entrenamiento. Por eso las mejoras siguientes se comparan con las imágenes externas y no solo con la validación, que ya está saturada.
+- **Dropout no cambia ninguna predicción externa** en ninguna de las dos arquitecturas (mismos aciertos y mismos errores). Sí cambia las curvas de la CNN (su pérdida de entrenamiento final es 100 veces mayor y las curvas son más irregulares), pero no mejora la validación. Es coherente con que el problema no es un sobreajuste clásico: la exactitud de entrenamiento y la de validación ya eran casi iguales, y el error está en que las imágenes externas son distintas a las del dataset.
+
+Es un conjunto muy pequeño y las diferencias de 2 aciertos (transfer learning) o de 1 imagen en prueba (Dropout) no son concluyentes, pero indica que la exactitud en validación y prueba **no se mantiene con imágenes de otro origen**. El análisis exploratorio mostró que las clases difieren también en resolución, peso de archivo, color y composición, y la validación y la prueba comparten esos sesgos con el entrenamiento. Por eso las mejoras siguientes se comparan con las imágenes externas y no solo con la validación, que ya está saturada.
 
 ## Estado
 
@@ -87,6 +95,6 @@ Es un conjunto muy pequeño y la diferencia de 2 aciertos no es concluyente, per
 - [x] Interfaz web
 - [x] Prueba con imágenes externas al dataset
 - [x] Transferencia de aprendizaje (EfficientNetB0)
-- [ ] Regularización (Dropout, L2, early stopping)
+- [x] Regularización con Dropout (sin mejora medible)
 - [ ] Aumento de datos
 - [ ] Reporte final

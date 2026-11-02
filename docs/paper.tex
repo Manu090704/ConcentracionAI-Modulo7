@@ -307,9 +307,60 @@ La Figura~\ref{fig:curvas_tl} muestra el entrenamiento. En validación el modelo
     \label{fig:curvas_tl}
 \end{figure}
 
-\subsection{Mejoras al modelo}
+\subsection{Regularización con Dropout}
 
-\pendiente{documentar una a una las mejoras restantes (regularización con Dropout, L2 y early stopping, ajuste de hiperparámetros y aumento de datos), cuáles funcionaron y por qué.}
+Ninguno de los dos modelos anteriores incluye regularización explícita. Dropout \cite{dropout} apaga al azar una fracción de las neuronas de una capa en cada paso de entrenamiento: cada neurona se descarta con probabilidad $r$ y las restantes se escalan por $1/(1-r)$. De esta forma la red no puede depender de neuronas individuales y se reduce la coadaptación entre ellas. Solo actúa durante el entrenamiento; al predecir se usan todas las neuronas.
+
+Se probó por separado en cada arquitectura, con una sola tasa por modelo y sin ajustarla, para no sobreajustar a un conjunto externo tan pequeño. En la CNN se añadió con $r=0.5$ después de la capa densa de 128 neuronas, que concentra el 97\% de los parámetros de la red; 0.5 es el valor habitual para capas densas. En EfficientNetB0 se añadió con $r=0.2$ después de la agrupación promedio global, la misma tasa que usa el clasificador original de esa red. El resto del entrenamiento (datos, particiones, épocas, tasas de aprendizaje y fases) fue idéntico al de los modelos sin Dropout, de modo que la única diferencia es esa capa. Cada modelo se entrenó una sola vez.
+
+La Figura~\ref{fig:curvas_dropout} muestra el entrenamiento. En la CNN, el Dropout tuvo el efecto esperado sobre las curvas: la pérdida de entrenamiento al final de las 15 épocas es de $5.5 \times 10^{-4}$, frente a $6.3 \times 10^{-6}$ sin Dropout, y las curvas son más irregulares, porque cada paso usa una red distinta. Sin embargo, esto no se tradujo en mejores métricas de validación: la exactitud fue la misma (99.84\%) y la pérdida final de validación fue algo mayor (0.0067 frente a 0.0044). En EfficientNetB0 los dos entrenamientos fueron prácticamente iguales (pérdida final de validación de 0.0025 con Dropout y 0.0020 sin él).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{figuras/curvas_dropout.png}
+    \caption{Exactitud y pérdida por época de los modelos con Dropout. En EfficientNetB0, la línea punteada marca el inicio del ajuste fino.}
+    \label{fig:curvas_dropout}
+\end{figure}
+
+En el conjunto de prueba, la CNN con Dropout cometió 5 errores (exactitud de 99.61\%) frente a 6 sin Dropout, y EfficientNetB0 con Dropout no cometió ninguno (100\%) frente a 1 sin él (Figura~\ref{fig:matrices_dropout}). Son diferencias de una sola imagen en 1,281, que no permiten afirmar una mejora, y como cada modelo se entrenó una vez, también pueden deberse a la aleatoriedad del entrenamiento.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{figuras/matrices_dropout.png}
+    \caption{Matrices de confusión de los modelos con Dropout en el conjunto de prueba.}
+    \label{fig:matrices_dropout}
+\end{figure}
+
+Con las imágenes externas, ningún modelo cambió su clase predicha en ninguna de las 8 imágenes (Tabla~\ref{tab:externas_dropout}): la CNN con Dropout sigue acertando 2 de 8 (25.0\%) y EfficientNetB0 con Dropout 4 de 8 (50.0\%), con los mismos aciertos y errores que sin Dropout. La confianza cambió poco (por ejemplo, la viñeta de manga, clasificada erróneamente como cartoon por EfficientNetB0, pasó de 94\% a 98\% de confianza) y los errores de la CNN siguen teniendo una confianza cercana a 100\%.
+
+\begin{table}[H]
+\caption{Predicciones de los modelos con Dropout sobre imágenes externas (entre paréntesis, la confianza)}
+\label{tab:externas_dropout}
+\centering
+\footnotesize
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccc}
+\hline
+\textbf{Imagen} & \textbf{Real} & \textbf{CNN + Dropout} & \textbf{EfficientNetB0 + Dropout} \\
+\hline
+\texttt{Caricaturas2.jpg} & cartoon & cartoon (100\%) & cartoon (100\%) \\
+\texttt{caricatura1.jpg} & cartoon & cartoon (100\%) & cartoon (100\%) \\
+\texttt{pruebaAnime.jpg} & anime & cartoon (100\%) & cartoon (100\%) \\
+\texttt{pruebaAnime2.jpg} & anime & cartoon (100\%) & cartoon (100\%) \\
+\texttt{pruebaAnime3.jpg} & anime & cartoon (100\%) & cartoon (98\%) \\
+\texttt{pruebaAnime6.jpg} & anime & cartoon (100\%) & anime (99\%) \\
+\texttt{pruebaPersona.jpg} & human & cartoon (100\%) & cartoon (97\%) \\
+\texttt{pruebaPersona2.jpg} & human & cartoon (100\%) & human (82\%) \\
+\hline
+\end{tabular}
+}
+\end{table}
+
+Este resultado es coherente con la naturaleza del problema. Dropout combate el sobreajuste, y en estos modelos la exactitud de entrenamiento y la de validación ya eran casi iguales, de modo que no había una brecha que cerrar. Reducir la coadaptación entre neuronas no corrige que las imágenes externas sean distintas a las del conjunto de datos, que es donde se concentra el error. Dropout se probó y se documenta, pero no aporta una mejora medible en este caso.
+
+\subsection{Otras mejoras}
+
+\pendiente{documentar el aumento de datos (y, si se prueban, L2, early stopping y el ajuste de hiperparámetros), cuáles funcionaron y por qué.}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % PREDICCIONES
@@ -391,7 +442,9 @@ La Tabla~\ref{tab:resumen_final} resume la exactitud y el F1 macro de los modelo
 \textbf{Modelo} & Exactitud & F1 & Exactitud & F1 & Exactitud & F1 \\
 \hline
 CNN base (desde cero) & 0.9984 & 0.9985 & 0.9953 & 0.9953 & 0.2500 & 0.1333 \\
+CNN + Dropout & 0.9984 & 0.9985 & 0.9961 & 0.9960 & 0.2500 & 0.1333 \\
 EfficientNetB0 (transfer learning) & 0.9992 & 0.9992 & 0.9992 & 0.9992 & 0.5000 & 0.5222 \\
+EfficientNetB0 + Dropout & 0.9992 & 0.9992 & 1.0000 & 1.0000 & 0.5000 & 0.5222 \\
 \hline
 \end{tabular}
 }
@@ -404,9 +457,9 @@ EfficientNetB0 (transfer learning) & 0.9992 & 0.9992 & 0.9992 & 0.9992 & 0.5000 
     \label{fig:matrices}
 \end{figure}
 
-En validación y en prueba ambos modelos superan el 99.5\% y la diferencia entre ellos es de unas pocas imágenes, por lo que esos conjuntos ya no permiten distinguir entre modelos. Con las imágenes externas, en cambio, el desempeño cae de forma notable en los dos (25.0\% y 50.0\%), y EfficientNetB0 es mejor, aunque con solo 8 imágenes la diferencia no es concluyente. Por eso, la evaluación con imágenes externas es la que se usa para comparar las mejoras siguientes.
+En validación y en prueba los cuatro modelos superan el 99.5\% y las diferencias entre ellos son de una o dos imágenes, por lo que esos conjuntos ya no permiten distinguir entre modelos. Con las imágenes externas, en cambio, el desempeño cae de forma notable (25.0\% en la CNN y 50.0\% en EfficientNetB0). La transferencia de aprendizaje mejora el resultado externo en 2 de las 8 imágenes, aunque con tan pocas imágenes esa diferencia no es concluyente. Dropout no cambió ninguna de las predicciones externas en ninguna de las dos arquitecturas. Por eso, la evaluación con imágenes externas es la que se usa para comparar las mejoras siguientes.
 
-\pendiente{agregar los modelos con regularización y con aumento de datos, y las conclusiones finales.}
+\pendiente{agregar el modelo con aumento de datos y las conclusiones finales.}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % REFERENCIAS
@@ -444,6 +497,9 @@ M. Tan and Q. Le, ``EfficientNet: Rethinking model scaling for convolutional neu
 
 \bibitem{imagenet}
 J. Deng, W. Dong, R. Socher, L.-J. Li, K. Li and L. Fei-Fei, ``ImageNet: A large-scale hierarchical image database,'' in \textit{Proc. IEEE Conf. Computer Vision and Pattern Recognition (CVPR)}, 2009, pp. 248--255.
+
+\bibitem{dropout}
+N. Srivastava, G. Hinton, A. Krizhevsky, I. Sutskever and R. Salakhutdinov, ``Dropout: A simple way to prevent neural networks from overfitting,'' \textit{Journal of Machine Learning Research}, vol. 15, no. 56, pp. 1929--1958, 2014.
 
 \end{thebibliography}
 
