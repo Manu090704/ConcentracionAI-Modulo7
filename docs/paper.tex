@@ -57,13 +57,14 @@ Manuel Bajos Rivera, A01711581
 
 \begin{abstract}
 
-En este proyecto se realiza la clasificación automática de imágenes en tres categorías: anime, caricaturas (cartoon) y personas (human). Para ello se utiliza el conjunto de datos Anime vs Cartoon vs Human obtenido de Kaggle, compuesto por 8,917 imágenes distribuidas de forma casi balanceada entre las tres clases (2913 cartoon, 3004 anime y 3000 human).
+En este proyecto se realiza la clasificación automática de imágenes en tres categorías: anime, caricaturas (cartoon) y personas (human). Se utiliza el conjunto de datos Anime vs Cartoon vs Human de Kaggle, con 8,917 imágenes casi balanceadas entre las tres clases (3,004 anime, 2,913 cartoon y 3,000 human), de las cuales quedan 8,534 tras eliminar 383 duplicados exactos. El análisis exploratorio mostró además diferencias marcadas de resolución, peso de archivo y color entre clases, que podrían permitir al modelo clasificar por atajos y no por contenido.
 
-El proyecto se enfoca en un problema de clasificación multiclase de imágenes. Se implementa primero una red neuronal convolucional propia con TensorFlow y Keras como modelo base, y posteriormente se mejora mediante técnicas de regularización, ajuste de hiperparámetros y transfer learning con una arquitectura preentrenada. Un análisis exploratorio previo identificó 383 imágenes duplicadas exactas y diferencias marcadas de resolución y peso entre clases, que podrían permitir al modelo clasificar por atajos y no por contenido.
+Se implementó una red neuronal convolucional propia con TensorFlow y Keras como modelo base, y se comparó con transferencia de aprendizaje usando EfficientNetB0 preentrenada con ImageNet. Se probaron además, cada uno por separado, la regularización con Dropout, estirar las imágenes en lugar de rellenarlas y el aumento de datos. Los modelos se evaluaron en validación, en prueba y con 8 imágenes externas al conjunto de datos.
 
-\pendiente{resumir los resultados finales: exactitud en prueba de la CNN base, de la CNN mejorada y del modelo con transferencia de aprendizaje, y qué cambios funcionaron.}
+En prueba, la CNN base alcanzó 99.53\% de exactitud y EfficientNetB0 99.92\%, pero todos los modelos superan el 99.5\% y esas métricas no permiten distinguirlos. Con las imágenes externas el desempeño cae de forma notable: la CNN base acierta 2 de 8 imágenes (25.0\%), EfficientNetB0 acierta 4 de 8 (50.0\%) y 5 de 8 (62.5\%) con aumento de datos, mientras que Dropout y estirar no mejoraron ese resultado. Ningún modelo clasifica correctamente las ilustraciones anime de estilo moderno, y todos sus errores se clasifican como cartoon. Con un conjunto externo tan pequeño las diferencias no son concluyentes, pero indican que la exactitud en validación y prueba no se mantiene con imágenes de otro origen, lo que podría deberse a la poca diversidad de los datos de entrenamiento. Los modelos pueden probarse mediante una interfaz web con selección de modelo.
 
 \end{abstract}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % PROBLEMÁTICA
