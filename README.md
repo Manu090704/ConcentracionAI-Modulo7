@@ -90,7 +90,7 @@ Cada modelo se evalúa con el mismo redimensionado con que se entrenó. Las cach
 
 En validación y prueba todos los modelos superan el 99.5% y se distinguen por una a tres imágenes, así que esos conjuntos ya no sirven para compararlos.
 
-**Imágenes externas** (carpeta `imgExternas/`, sección 7 del notebook). Dos de las 10 imágenes son copias de imágenes del dataset (se detectan por contenido y se excluyen), así que quedan 8.
+**Imágenes externas** (carpeta `imgExternas/`, sección 7 del notebook). Son 8 imágenes; el notebook las compara por contenido (MD5) con el dataset y excluiría cualquier copia. Se obtuvieron de forma aleatoria de internet, sin verificar su licencia ni registrar su fuente; se incluyen solo con fines académicos, para evaluar los modelos, y sus derechos pertenecen a sus autores.
 
 - La CNN base solo acierta las 2 caricaturas: las otras 6 (anime y personas) las clasifica como cartoon con una confianza de ~100%. Quitar el padding no cambia las predicciones.
 - EfficientNetB0 acierta 4 de 8 (las 2 caricaturas, un rostro anime pixelado y una foto de persona). Sigue fallando con ilustraciones anime modernas, una viñeta de manga y un modelo anatómico, y todos sus errores van a cartoon.

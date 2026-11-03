@@ -349,7 +349,7 @@ Con las imágenes externas, ningún modelo cambió su clase predicha en ninguna 
 \texttt{pruebaAnime.jpg} & anime & cartoon (100\%) & cartoon (100\%) \\
 \texttt{pruebaAnime2.jpg} & anime & cartoon (100\%) & cartoon (100\%) \\
 \texttt{pruebaAnime3.jpg} & anime & cartoon (100\%) & cartoon (98\%) \\
-\texttt{pruebaAnime6.jpg} & anime & cartoon (100\%) & anime (99\%) \\
+\texttt{pruebaAnime4.jpg} & anime & cartoon (100\%) & anime (99\%) \\
 \texttt{pruebaPersona.jpg} & human & cartoon (100\%) & cartoon (97\%) \\
 \texttt{pruebaPersona2.jpg} & human & cartoon (100\%) & human (82\%) \\
 \hline
@@ -431,7 +431,7 @@ Con las imágenes externas (Tabla~\ref{tab:externas_datos}), estirar por sí sol
 \texttt{pruebaAnime.jpg} & anime & cartoon (100\%) & cartoon (90\%) & cartoon (91\%) & cartoon (85\%) \\
 \texttt{pruebaAnime2.jpg} & anime & cartoon (100\%) & cartoon (84\%) & cartoon (91\%) & cartoon (54\%) \\
 \texttt{pruebaAnime3.jpg} & anime & cartoon (94\%) & cartoon (99\%) & anime (91\%) & anime (69\%) \\
-\texttt{pruebaAnime6.jpg} & anime & anime (97\%) & anime (89\%) & anime (87\%) & anime (95\%) \\
+\texttt{pruebaAnime4.jpg} & anime & anime (97\%) & anime (89\%) & anime (87\%) & anime (95\%) \\
 \texttt{pruebaPersona.jpg} & human & cartoon (98\%) & cartoon (100\%) & cartoon (99\%) & cartoon (100\%) \\
 \texttt{pruebaPersona2.jpg} & human & human (81\%) & human (100\%) & human (84\%) & human (96\%) \\
 \hline
@@ -451,7 +451,7 @@ Las métricas de validación y de prueba se calculan con imágenes del mismo con
 
 \subsection{Conjunto de imágenes externas}
 
-Se reunieron 10 imágenes, y la clase de cada una se deduce del prefijo de su nombre de archivo. Antes de evaluar, se compararon por contenido (resumen MD5) con las imágenes del conjunto de datos, y se encontró que dos de ellas son copias exactas de imágenes de la partición de entrenamiento: una de anime (\texttt{anime/1001\_2000.jpg}) y una de human (\texttt{human/00000.png}). Como el modelo pudo verlas al entrenar, no sirven para medir la generalización y se excluyeron de la evaluación; se usaron solo como control, y el modelo las clasificó correctamente, como era de esperar. Quedan 8 imágenes externas: 4 de anime, 2 de cartoon y 2 de human. \pendiente{indicar el origen o la licencia de las imágenes externas.}
+Se reunieron 8 imágenes, y la clase de cada una se deduce del prefijo de su nombre de archivo. Antes de evaluar, se compararon por contenido (resumen MD5) con las imágenes del conjunto de datos y se comprobó que ninguna es copia de ellas, de modo que el modelo no pudo verlas al entrenar. Son 4 de anime, 2 de cartoon y 2 de human. Las imágenes se obtuvieron de forma aleatoria de internet; no se verificaron sus licencias ni se registró su fuente. Se usan únicamente con fines académicos, para evaluar el desempeño de los modelos y ilustrar los resultados de este reporte, y no con fines comerciales. Los derechos de cada imagen pertenecen a sus respectivos autores.
 
 Es un conjunto muy pequeño, por lo que permite observar patrones pero no estimar el desempeño con precisión. Además, una de las imágenes de human es un modelo anatómico de musculatura en 3D y no una fotografía, es decir, no corresponde al tipo de imagen de esa clase en el conjunto de entrenamiento.
 
@@ -474,7 +474,7 @@ La Tabla~\ref{tab:externas} muestra las predicciones de los dos modelos y la Fig
 \texttt{pruebaAnime.jpg} & Ilustración anime horizontal & anime & cartoon & cartoon (100\%) \\
 \texttt{pruebaAnime2.jpg} & Ilustración anime de personaje & anime & cartoon & cartoon (100\%) \\
 \texttt{pruebaAnime3.jpg} & Viñeta de manga en blanco y negro & anime & cartoon & cartoon (94.4\%) \\
-\texttt{pruebaAnime6.jpg} & Rostro en arte pixelado & anime & cartoon & anime (97.1\%) \\
+\texttt{pruebaAnime4.jpg} & Rostro en arte pixelado & anime & cartoon & anime (97.1\%) \\
 \texttt{pruebaPersona.jpg} & Modelo anatómico 3D & human & cartoon & cartoon (97.6\%) \\
 \texttt{pruebaPersona2.jpg} & Fotografía de un hombre & human & cartoon & human (80.7\%) \\
 \hline
@@ -541,7 +541,19 @@ EfficientNetB0 + estirar y aumento & 0.9969 & 0.9968 & 0.9977 & 0.9976 & 0.6250 
 
 En validación y en prueba todos los modelos superan el 99.5\% y las diferencias entre ellos son de una a tres imágenes, por lo que esos conjuntos no permiten distinguir entre modelos. Con las imágenes externas, en cambio, el desempeño cae de forma notable y sí aparecen diferencias: 25.0\% en la CNN (con o sin Dropout), 50.0\% en EfficientNetB0 (con o sin Dropout, o estirando) y 62.5\% con aumento de datos (con padding o estirando). Dropout no cambió ninguna predicción externa. La transferencia de aprendizaje y el aumento de datos mejoraron el resultado externo en 2 y en 1 de las 8 imágenes, respectivamente, lo cual no es concluyente con tan pocas imágenes. Ningún modelo resolvió las ilustraciones anime de estilo moderno. Por eso, la evaluación con imágenes externas es la que se usa para comparar los modelos.
 
-\pendiente{agregar las conclusiones finales.}
+\section{Conclusiones}
+
+Se construyó un clasificador de imágenes en tres clases (anime, cartoon y human) y se comparó una CNN propia con transferencia de aprendizaje y con tres modificaciones: Dropout, estirar las imágenes y aumento de datos. Las conclusiones son las siguientes.
+
+\begin{itemize}
+    \item \textbf{La exactitud en validación y prueba no distingue entre los modelos.} Todos superan el 99.5\% y difieren en una a seis imágenes de 1,281. Además, el análisis exploratorio mostró que las clases difieren en resolución, peso de archivo, color y composición, y la validación y la prueba comparten esos sesgos con el entrenamiento, por lo que una cifra alta ahí no garantiza que el modelo haya aprendido el contenido de las imágenes.
+    \item \textbf{Los modelos no generalizan bien a imágenes de otro origen.} En las 8 imágenes externas, la CNN base acierta 2 (25.0\%), y el mejor modelo, 5 (62.5\%). Los errores se concentran en la clase cartoon y ocurren con una confianza alta, sobre todo en ilustraciones anime de estilo moderno, que ningún modelo clasificó correctamente.
+    \item \textbf{Qué ayudó.} La transferencia de aprendizaje con EfficientNetB0 pasó de 2 a 4 aciertos externos y el aumento de datos añadió uno más (la viñeta de manga en blanco y negro). Estirar las imágenes no cambió los aciertos, pero redujo la confianza de algunos errores.
+    \item \textbf{Qué no ayudó.} Dropout no cambió ninguna predicción externa en ninguna de las dos arquitecturas. Esto es coherente con que el problema no sea un sobreajuste clásico, ya que la exactitud de entrenamiento y la de validación eran casi iguales.
+    \item \textbf{Alcance de estos resultados.} El conjunto externo tiene solo 8 imágenes y cada modelo se entrenó una vez, por lo que las diferencias de uno o dos aciertos no son concluyentes. La explicación de que el anime de entrenamiento sean solo rostros recortados, y por eso fallen las ilustraciones con cuerpo, fondo o estilo distinto, es una hipótesis que no se comprobó.
+\end{itemize}
+
+Como trabajo futuro, lo más probable es que el mayor avance venga de ampliar y diversificar los datos de entrenamiento (por ejemplo, anime con cuerpo completo y fondos, y fuentes distintas para cada clase), y de evaluar con un conjunto externo más grande y con varias repeticiones del entrenamiento para poder confirmar diferencias pequeñas.
 
 %%%%%%%%%%%%%%%%
 
