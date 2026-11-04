@@ -1,0 +1,374 @@
+[
+ {
+  "config": "20 capas",
+  "semilla": 42,
+  "val_exactitud": 0.9953125,
+  "val_f1": 0.9953926146829905,
+  "val_perdida": 0.013324501924216747,
+  "ext_aciertos": 5,
+  "ext_f1": 0.611111111111111,
+  "ext_pred": [
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "human",
+   "anime",
+   "anime",
+   "cartoon",
+   "human"
+  ],
+  "ext_conf": [
+   1.0,
+   0.9803,
+   0.554,
+   0.4379,
+   0.7127,
+   0.9142,
+   0.9955,
+   0.9937
+  ],
+  "parametros_entrenables": 1346611,
+  "segundos": 348.1
+ },
+ {
+  "config": "20 capas",
+  "semilla": 43,
+  "val_exactitud": 0.99453125,
+  "val_f1": 0.994530905447813,
+  "val_perdida": 0.014783618040382862,
+  "ext_aciertos": 5,
+  "ext_f1": 0.6349206349206349,
+  "ext_pred": [
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "anime",
+   "anime",
+   "cartoon",
+   "human"
+  ],
+  "ext_conf": [
+   1.0,
+   0.9425,
+   0.8762,
+   0.6391,
+   0.6914,
+   0.7677,
+   0.9984,
+   0.9905
+  ],
+  "parametros_entrenables": 1346611,
+  "segundos": 370.5
+ },
+ {
+  "config": "20 capas",
+  "semilla": 44,
+  "val_exactitud": 0.99453125,
+  "val_f1": 0.9945848018746736,
+  "val_perdida": 0.012702425941824913,
+  "ext_aciertos": 5,
+  "ext_f1": 0.611111111111111,
+  "ext_pred": [
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "human",
+   "anime",
+   "anime",
+   "cartoon",
+   "human"
+  ],
+  "ext_conf": [
+   1.0,
+   0.987,
+   0.589,
+   0.494,
+   0.5834,
+   0.6327,
+   0.9962,
+   0.9932
+  ],
+  "parametros_entrenables": 1346611,
+  "segundos": 1367.6
+ },
+ {
+  "config": "cabeza",
+  "semilla": 42,
+  "val_exactitud": 0.99140625,
+  "val_f1": 0.9914602378815364,
+  "val_perdida": 0.02438241057097912,
+  "ext_aciertos": 6,
+  "ext_f1": 0.719047619047619,
+  "ext_pred": [
+   "cartoon",
+   "cartoon",
+   "anime",
+   "human",
+   "anime",
+   "anime",
+   "cartoon",
+   "human"
+  ],
+  "ext_conf": [
+   1.0,
+   0.7794,
+   0.5181,
+   0.5311,
+   0.7257,
+   0.7167,
+   0.9721,
+   0.986
+  ],
+  "parametros_entrenables": 3843,
+  "segundos": 572.2
+ },
+ {
+  "config": "cabeza",
+  "semilla": 43,
+  "val_exactitud": 0.990625,
+  "val_f1": 0.9906152864662428,
+  "val_perdida": 0.026125555858016014,
+  "ext_aciertos": 6,
+  "ext_f1": 0.719047619047619,
+  "ext_pred": [
+   "cartoon",
+   "cartoon",
+   "anime",
+   "human",
+   "anime",
+   "anime",
+   "cartoon",
+   "human"
+  ],
+  "ext_conf": [
+   1.0,
+   0.5853,
+   0.6523,
+   0.4898,
+   0.9214,
+   0.7047,
+   0.9524,
+   0.9895
+  ],
+  "parametros_entrenables": 3843,
+  "segundos": 577.4
+ },
+ {
+  "config": "cabeza",
+  "semilla": 44,
+  "val_exactitud": 0.9890625,
+  "val_f1": 0.9890536269093199,
+  "val_perdida": 0.024715851992368698,
+  "ext_aciertos": 6,
+  "ext_f1": 0.719047619047619,
+  "ext_pred": [
+   "cartoon",
+   "cartoon",
+   "anime",
+   "human",
+   "anime",
+   "anime",
+   "cartoon",
+   "human"
+  ],
+  "ext_conf": [
+   1.0,
+   0.7567,
+   0.7119,
+   0.5176,
+   0.7542,
+   0.6688,
+   0.9868,
+   0.9729
+  ],
+  "parametros_entrenables": 3843,
+  "segundos": 573.3
+ },
+ {
+  "config": "top_conv",
+  "semilla": 42,
+  "val_exactitud": 0.99296875,
+  "val_f1": 0.9930233666215589,
+  "val_perdida": 0.019939403980970383,
+  "ext_aciertos": 6,
+  "ext_f1": 0.719047619047619,
+  "ext_pred": [
+   "cartoon",
+   "cartoon",
+   "anime",
+   "human",
+   "anime",
+   "anime",
+   "cartoon",
+   "human"
+  ],
+  "ext_conf": [
+   1.0,
+   0.7775,
+   0.5114,
+   0.5143,
+   0.7929,
+   0.7918,
+   0.9664,
+   0.9905
+  ],
+  "parametros_entrenables": 413443,
+  "segundos": 587.8
+ },
+ {
+  "config": "top_conv",
+  "semilla": 43,
+  "val_exactitud": 0.99140625,
+  "val_f1": 0.991423452444942,
+  "val_perdida": 0.022070469334721565,
+  "ext_aciertos": 5,
+  "ext_f1": 0.611111111111111,
+  "ext_pred": [
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "human",
+   "anime",
+   "anime",
+   "cartoon",
+   "human"
+  ],
+  "ext_conf": [
+   1.0,
+   0.6207,
+   0.6209,
+   0.5023,
+   0.8527,
+   0.7647,
+   0.9858,
+   0.9895
+  ],
+  "parametros_entrenables": 413443,
+  "segundos": 313.9
+ },
+ {
+  "config": "top_conv",
+  "semilla": 44,
+  "val_exactitud": 0.99296875,
+  "val_f1": 0.9929697253210641,
+  "val_perdida": 0.020142298191785812,
+  "ext_aciertos": 6,
+  "ext_f1": 0.719047619047619,
+  "ext_pred": [
+   "cartoon",
+   "cartoon",
+   "anime",
+   "human",
+   "anime",
+   "anime",
+   "cartoon",
+   "human"
+  ],
+  "ext_conf": [
+   1.0,
+   0.7329,
+   0.7439,
+   0.6369,
+   0.5493,
+   0.6643,
+   0.9851,
+   0.9856
+  ],
+  "parametros_entrenables": 413443,
+  "segundos": 324.5
+ },
+ {
+  "config": "block7a",
+  "semilla": 42,
+  "val_exactitud": 0.99453125,
+  "val_f1": 0.9945848018746736,
+  "val_perdida": 0.012722596526145935,
+  "ext_aciertos": 5,
+  "ext_f1": 0.611111111111111,
+  "ext_pred": [
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "human",
+   "anime",
+   "anime",
+   "cartoon",
+   "human"
+  ],
+  "ext_conf": [
+   1.0,
+   0.9865,
+   0.7044,
+   0.4339,
+   0.717,
+   0.9247,
+   0.9911,
+   0.9938
+  ],
+  "parametros_entrenables": 1125427,
+  "segundos": 346.6
+ },
+ {
+  "config": "block7a",
+  "semilla": 43,
+  "val_exactitud": 0.996875,
+  "val_f1": 0.9968964702935955,
+  "val_perdida": 0.01320374570786953,
+  "ext_aciertos": 5,
+  "ext_f1": 0.6349206349206349,
+  "ext_pred": [
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "anime",
+   "anime",
+   "cartoon",
+   "human"
+  ],
+  "ext_conf": [
+   1.0,
+   0.9904,
+   0.8103,
+   0.6794,
+   0.7631,
+   0.9141,
+   0.9985,
+   0.9953
+  ],
+  "parametros_entrenables": 1125427,
+  "segundos": 1602.0
+ },
+ {
+  "config": "block7a",
+  "semilla": 44,
+  "val_exactitud": 0.9953125,
+  "val_f1": 0.9953376459931608,
+  "val_perdida": 0.012315995059907436,
+  "ext_aciertos": 5,
+  "ext_f1": 0.611111111111111,
+  "ext_pred": [
+   "cartoon",
+   "cartoon",
+   "anime",
+   "human",
+   "cartoon",
+   "anime",
+   "cartoon",
+   "human"
+  ],
+  "ext_conf": [
+   1.0,
+   0.9841,
+   0.7317,
+   0.4484,
+   0.6022,
+   0.9152,
+   0.9978,
+   0.9935
+  ],
+  "parametros_entrenables": 1125427,
+  "segundos": 598.5
+ }
+]

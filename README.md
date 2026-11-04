@@ -98,6 +98,24 @@ Cada modelo se evalúa con el mismo redimensionado con que se entrenó. Las cach
 
 Se mantienen los 3 bloques: tienen la mejor validación y ninguna profundidad cambia las externas (las 12 redes clasifican las 8 imágenes como cartoon, con al menos 92.9% de confianza). Con la semilla 42, la red de 3 bloques reproduce exactamente la CNN base.
 
+**Profundidad del ajuste fino de EfficientNetB0** (sección 14 del notebook). Las "últimas 20 capas" del ajuste fino también se habían fijado sin fuente. Se siguió el procedimiento incremental de Tajbakhsh et al. (2016, [doi:10.1109/TMI.2016.2535302](https://doi.org/10.1109/TMI.2016.2535302)): empezar por la última capa e ir descongelando hacia atrás, por bloques (solo la cabeza, `top_conv`, `block7a`, `block6a`, … hasta la base completa), y detenerse tras dos pasos seguidos sin mejora. Se aplicó al modelo `stretch_aug` a 128 px con la misma regla y las mismas 3 semillas que la CNN, y la configuración de 20 capas como referencia. Los resultados están en `resultados/profundidad_efficientnet.json`.
+
+| Parte ajustada | Parámetros entrenables | Validación (media ± DE) | Pérdida de validación | Externas (media ± DE) |
+|---|---|---|---|---|
+| Solo la cabeza | 3,843 | 99.04% ± 0.10 | 0.0251 | 6.00 ± 0.00 de 8 |
+| Desde `top_conv` | 413,443 | 99.24% ± 0.07 | 0.0207 | 5.67 ± 0.47 de 8 |
+| Desde `block7a` | 1,125,427 | 99.56% ± 0.10 | 0.0127 | 5.00 ± 0.00 de 8 |
+| **Últimas 20 capas (actual)** | 1,346,611 | 99.48% ± 0.04 | 0.0136 | 5.00 ± 0.00 de 8 |
+
+El recorrido se detuvo en `block7a`, porque ni `top_conv` ni `block7a` superaron a "solo la cabeza", así que de `block6a` hacia atrás no se entrenó. Se mantienen las 20 capas y no hace falta reentrenar los demás modelos.
+
+Hay un intercambio claro entre los dos criterios:
+
+- **Entrenar solo la cabeza** acierta 6 de 8 con las tres semillas (suma `pruebaAnime.jpg`, con 52–71% de confianza). Pero su validación media (99.04%) queda por debajo del piso de la regla (99.44%, unas 6 imágenes más mal clasificadas de 1,281).
+- **Ajustar desde `block7a`** tiene la mejor validación, pero no cambia las externas.
+
+Una posible explicación, sin comprobar, es que ajustar más capas adapta la red a los sesgos del dataset. La diferencia depende de 1 imagen de 8, así que no es concluyente.
+
 ## Resultados
 
 | Modelo | Validación (exactitud / F1) | Prueba (exactitud / F1) | Errores en prueba | Externas, 8 imágenes (exactitud / F1) |
@@ -129,7 +147,7 @@ En validación y prueba todos los modelos superan el 99.5% y se distinguen por u
 - En validación y prueba las variantes con cambios en los datos rinden un poco peor (99.69% frente a 99.92% en validación), el costo esperable de entrenar con datos más variados.
 - **El aumento dirigido no mejoró** (4 de 8, con 9 errores en prueba frente a 3). Por separado: **alejar** es la única transformación que acierta una imagen nueva (`pruebaAnime.jpg`), pero pierde la viñeta de manga y el rostro pixelado y es la que más empeora validación y prueba; **recortar** y **borrar** aciertan las mismas imágenes que el modelo base, sin cambio. Cada variante se entrenó una sola vez y con 8 imágenes una diferencia de una imagen no se distingue del azar.
 - **A 224 px** la exactitud sube en validación (99.84%) y en prueba (99.92%, 1 error, la mejor de las variantes estiradas), pero las externas se quedan en 5 de 8: `pruebaAnime2.jpg` se acierta por primera vez (anime, 65%) y se pierde el rostro pixelado `pruebaAnime4.jpg` (cartoon, 98%). Un solo entrenamiento y 8 imágenes: no concluyente.
-- **En todas las variantes siguen fallando** las ilustraciones anime de estilo moderno y el modelo anatómico, y todos los errores van a cartoon. Una posible explicación (sin comprobar) es que el anime del dataset son solo rostros recortados, y el aumento no crea personajes con cuerpo, fondos ni estilos nuevos.
+- **Ninguna variante acierta a la vez las dos ilustraciones anime de estilo moderno**, el modelo anatómico falla en todas y casi todos los errores van a cartoon. Una posible explicación (sin comprobar) es que el anime del dataset son solo rostros recortados, y el aumento no crea personajes con cuerpo, fondos ni estilos nuevos.
 
 Es un conjunto muy pequeño y las diferencias de 1 o 2 aciertos (transfer learning, aumento de datos) o de 1 imagen en prueba (Dropout) no son concluyentes, pero indica que la exactitud en validación y prueba **no se mantiene con imágenes de otro origen**. El análisis exploratorio mostró que las clases difieren también en resolución, peso de archivo, color y composición, y la validación y la prueba comparten esos sesgos con el entrenamiento. Por eso las mejoras siguientes se comparan con las imágenes externas y no solo con la validación, que ya está saturada.
 
@@ -143,5 +161,5 @@ Es un conjunto muy pequeño y las diferencias de 1 o 2 aciertos (transfer learni
 - [x] Regularización con Dropout (sin mejora medible)
 - [x] Aumento de datos y estirar las imágenes (mejora modesta)
 - [x] Profundidad de la CNN, de 2 a 5 bloques (sin mejora: se mantienen 3)
-- [ ] Profundidad del ajuste fino de EfficientNetB0
+- [x] Profundidad del ajuste fino de EfficientNetB0 (sin mejora que cumpla la regla: se mantienen 20 capas)
 - [ ] Reporte final
