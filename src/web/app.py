@@ -16,14 +16,15 @@ import keras  # noqa: E402
 from flask import Flask, jsonify, request  # noqa: E402
 from PIL import Image  # noqa: E402
 
-from src.preprocesamiento import CLASSES, preprocess  # noqa: E402
+from src.preprocesamiento import CLASSES, IMG_SIZE, preprocess  # noqa: E402
 
 MODELS_DIR = ROOT / "modelos"
 MAX_UPLOAD_MB = 10
 MAX_PIXELS = 50_000_000
 
 # Modelos disponibles. "preprocesado" debe coincidir con el redimensionado con que se entreno cada uno
-# ("pad": conserva la proporcion y rellena; "stretch": estira a cuadrado). "externas" son los aciertos
+# ("pad": conserva la proporcion y rellena; "stretch": estira a cuadrado) y "tamano" con el lado en pixeles
+# (128 si no se indica). "externas" son los aciertos
 # del modelo en las 8 imagenes externas del notebook (seccion 7 en adelante).
 MODELS = {
     "efficientnetb0_pad_aug": {
@@ -34,6 +35,14 @@ MODELS = {
         "nombre": "EfficientNetB0 + estirar y aumento de datos",
         "archivo": "efficientnetb0_stretch_aug.keras", "preprocesado": "stretch",
         "detalle": "Transfer learning, imágenes estiradas y aumento de datos. Aciertos en imágenes externas: 5 de 8."},
+    "efficientnetb0_stretch_aug_224": {
+        "nombre": "EfficientNetB0 + estirar y aumento (224 px)",
+        "archivo": "efficientnetb0_stretch_aug_224.keras", "preprocesado": "stretch", "tamano": 224,
+        "detalle": "Transfer learning a 224 × 224, imágenes estiradas y aumento de datos. Aciertos en imágenes externas: 5 de 8."},
+    "efficientnetb0_stretch_aug_dirigido": {
+        "nombre": "EfficientNetB0 + estirar y aumento dirigido",
+        "archivo": "efficientnetb0_stretch_aug_dirigido.keras", "preprocesado": "stretch",
+        "detalle": "Transfer learning, imágenes estiradas y aumento dirigido (alejar, recortar y borrar zonas). Aciertos en imágenes externas: 4 de 8."},
     "efficientnetb0_stretch": {
         "nombre": "EfficientNetB0 + estirar",
         "archivo": "efficientnetb0_stretch.keras", "preprocesado": "stretch",
@@ -98,7 +107,7 @@ def predict():
         image = Image.open(file.stream)
         if image.width * image.height > MAX_PIXELS:
             return jsonify(error="La imagen es demasiado grande."), 400
-        x = preprocess(image, mode=AVAILABLE[model_id]["preprocesado"])
+        x = preprocess(image, size=AVAILABLE[model_id].get("tamano", IMG_SIZE), mode=AVAILABLE[model_id]["preprocesado"])
     except Exception:
         return jsonify(error="No se pudo leer el archivo como imagen."), 400
 

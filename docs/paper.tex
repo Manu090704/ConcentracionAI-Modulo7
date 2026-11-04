@@ -59,9 +59,9 @@ Manuel Bajos Rivera, A01711581
 
 En este proyecto se realiza la clasificación automática de imágenes en tres categorías: anime, caricaturas (cartoon) y personas (human). Se utiliza el conjunto de datos Anime vs Cartoon vs Human de Kaggle, con 8,917 imágenes casi balanceadas entre las tres clases (3,004 anime, 2,913 cartoon y 3,000 human), de las cuales quedan 8,534 tras eliminar 383 duplicados exactos. El análisis exploratorio mostró además diferencias marcadas de resolución, peso de archivo y color entre clases, que podrían permitir al modelo clasificar por atajos y no por contenido.
 
-Se implementó una red neuronal convolucional propia con TensorFlow y Keras como modelo base, y se comparó con transferencia de aprendizaje usando EfficientNetB0 preentrenada con ImageNet. Se probaron además, cada uno por separado, la regularización con Dropout, estirar las imágenes en lugar de rellenarlas y el aumento de datos. Los modelos se evaluaron en validación, en prueba y con 8 imágenes externas al conjunto de datos.
+Se implementó una red neuronal convolucional propia con TensorFlow y Keras como modelo base, y se comparó con transferencia de aprendizaje usando EfficientNetB0 preentrenada con ImageNet. Se probaron además, cada uno por separado, la regularización con Dropout, estirar las imágenes en lugar de rellenarlas, el aumento de datos, un aumento dirigido a la falla (alejar, recortar y borrar zonas, también por separado) y imágenes de 224 $\times$ 224 píxeles. Los modelos se evaluaron en validación, en prueba y con 8 imágenes externas al conjunto de datos.
 
-En prueba, la CNN base alcanzó 99.53\% de exactitud y EfficientNetB0 99.92\%, pero todos los modelos superan el 99.5\% y esas métricas no permiten distinguirlos. Con las imágenes externas el desempeño cae de forma notable: la CNN base acierta 2 de 8 imágenes (25.0\%), EfficientNetB0 acierta 4 de 8 (50.0\%) y 5 de 8 (62.5\%) con aumento de datos, mientras que Dropout y estirar no mejoraron ese resultado. Ningún modelo clasifica correctamente las ilustraciones anime de estilo moderno, y todos sus errores se clasifican como cartoon. Con un conjunto externo tan pequeño las diferencias no son concluyentes, pero indican que la exactitud en validación y prueba no se mantiene con imágenes de otro origen, lo que podría deberse a la poca diversidad de los datos de entrenamiento. Los modelos pueden probarse mediante una interfaz web con selección de modelo.
+En prueba, la CNN base alcanzó 99.53\% de exactitud y EfficientNetB0 99.92\%, pero todos los modelos superan el 99.5\% y esas métricas no permiten distinguirlos. Con las imágenes externas el desempeño cae de forma notable: la CNN base acierta 2 de 8 imágenes (25.0\%), EfficientNetB0 acierta 4 de 8 (50.0\%) y 5 de 8 (62.5\%) con aumento de datos, mientras que Dropout, estirar, el aumento dirigido y la mayor resolución no mejoraron ese resultado. Ningún modelo clasifica correctamente las ilustraciones anime de estilo moderno, y todos sus errores se clasifican como cartoon. Con un conjunto externo tan pequeño las diferencias no son concluyentes, pero indican que la exactitud en validación y prueba no se mantiene con imágenes de otro origen, lo que podría deberse a la poca diversidad de los datos de entrenamiento. Los modelos pueden probarse mediante una interfaz web con selección de modelo.
 
 \end{abstract}
 
@@ -441,6 +441,66 @@ Con las imágenes externas (Tabla~\ref{tab:externas_datos}), estirar por sí sol
 
 En todas las variantes siguen fallando las dos ilustraciones anime de estilo moderno y el modelo anatómico, y todos los errores se clasificaron como cartoon. La mejora es modesta y poco concluyente: es un acierto más en 8 imágenes, cada modelo se entrenó una sola vez y las diferencias en validación y prueba son de una o dos imágenes. Una posible explicación de que el aumento de datos no corrija las ilustraciones anime modernas, que no se comprobó, es que en el conjunto de entrenamiento las imágenes de anime son solo rostros recortados: transformaciones como el zoom o la traslación varían lo que se ve de esos rostros, pero no crean personajes con cuerpo, fondos ni estilos que el conjunto no contiene. Resolverlo requeriría más diversidad en los propios datos de entrenamiento.
 
+\subsection{Aumento de datos dirigido a la falla}
+
+Las ilustraciones anime modernas seguían sin acertarse. Como hipótesis, que no se comprobó, el anime del conjunto de entrenamiento son rostros que ocupan todo el cuadro, mientras que las imágenes externas tienen cuerpo, fondo o estilo distinto. Para simular esa diferencia se añadieron tres transformaciones al aumento anterior (Figura~\ref{fig:aumento_dirigido}):
+\begin{itemize}
+    \item \textbf{alejar la imagen:} se reduce a entre 40\% y 80\% del lado y se coloca al azar sobre un fondo plano del color del borde, para que el rostro quede como parte de una escena;
+    \item \textbf{recorte agresivo:} se recorta una región de entre 30\% y 80\% del área, con proporción entre 3:4 y 4:3, y se amplía;
+    \item \textbf{borrado aleatorio:} se tapa un rectángulo de entre 2\% y 25\% del área con ruido.
+\end{itemize}
+Cada imagen recibe un alejamiento o un recorte (35\% de probabilidad cada uno) y, con 50\% de probabilidad, un borrado. Se usaron imágenes estiradas, para que los fondos planos del alejamiento no se confundan con las barras de relleno del padding, y el mismo entrenamiento en dos fases. Una ejecución exploratoria previa con padding, que no se conservó, obtuvo 5 de 8 en las imágenes externas (F1 macro de 0.611), 99.30\% en validación y 99.38\% en prueba.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{figuras/aumento_dirigido.png}
+    \caption{Una imagen por clase (columna izquierda) y siete versiones con el aumento dirigido.}
+    \label{fig:aumento_dirigido}
+\end{figure}
+
+El resultado no mejora al del aumento anterior: 4 de 8 imágenes externas (exactitud de 50.0\% y F1 macro de 0.490), frente a 5 de 8 con el aumento anterior, y 9 errores en prueba frente a 3 (Tabla~\ref{tab:resumen_final}). Cambió además cuáles imágenes se aciertan: la viñeta de manga \texttt{pruebaAnime3.jpg}, que el aumento anterior sí acertaba, pasa a cartoon, y \texttt{pruebaAnime2.jpg} se clasifica ahora como human (60\%) y no como cartoon. Siguen sin acertarse las ilustraciones anime modernas, y por primera vez un error no se clasifica como cartoon.
+
+\subsection{Ablación del aumento dirigido}
+
+Como el aumento dirigido junta tres transformaciones, no se sabe cuál produce el cambio. Se entrenó una variante por cada una, partiendo del aumento anterior con imágenes estiradas y añadiendo solo esa transformación, con la misma probabilidad que en el aumento dirigido completo. El entrenamiento, la semilla y las imágenes externas son los mismos, y cada variante se entrenó una sola vez. La Tabla~\ref{tab:ablacion} muestra los resultados por imagen externa.
+
+\begin{table}[H]
+\caption{Predicciones por imagen externa de la ablación (entre paréntesis, la confianza). Base: aumento anterior con imágenes estiradas; Dir.: las tres transformaciones juntas}
+\label{tab:ablacion}
+\centering
+\footnotesize
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{llccccc}
+\hline
+\textbf{Imagen} & \textbf{Real} & \textbf{Base} & \textbf{Alejar} & \textbf{Recortar} & \textbf{Borrar} & \textbf{Dir.} \\
+\hline
+\texttt{Caricaturas2.jpg} & cartoon & cartoon (100\%) & cartoon (100\%) & cartoon (100\%) & cartoon (100\%) & cartoon (100\%) \\
+\texttt{caricatura1.jpg} & cartoon & cartoon (99\%) & cartoon (88\%) & cartoon (95\%) & cartoon (99\%) & cartoon (94\%) \\
+\texttt{pruebaAnime.jpg} & anime & cartoon (85\%) & anime (77\%) & cartoon (77\%) & cartoon (94\%) & cartoon (81\%) \\
+\texttt{pruebaAnime2.jpg} & anime & cartoon (54\%) & human (57\%) & cartoon (62\%) & human (67\%) & human (60\%) \\
+\texttt{pruebaAnime3.jpg} & anime & anime (69\%) & cartoon (61\%) & anime (84\%) & anime (80\%) & cartoon (55\%) \\
+\texttt{pruebaAnime4.jpg} & anime & anime (95\%) & human (64\%) & anime (82\%) & anime (88\%) & anime (72\%) \\
+\texttt{pruebaPersona.jpg} & human & cartoon (100\%) & cartoon (99\%) & cartoon (99\%) & cartoon (96\%) & cartoon (94\%) \\
+\texttt{pruebaPersona2.jpg} & human & human (96\%) & human (99\%) & human (96\%) & human (100\%) & human (97\%) \\
+\hline
+\end{tabular}
+}
+\end{table}
+
+\begin{itemize}
+    \item \textbf{Alejar} es la única que acierta una imagen que el modelo base no acertaba (\texttt{pruebaAnime.jpg}), pero pierde la viñeta de manga y el rostro pixelado. Es también la que más empeora la validación (99.14\%) y la prueba (7 errores frente a 3), con 4 de 8 imágenes externas.
+    \item \textbf{Recortar y borrar} aciertan exactamente las mismas imágenes que el modelo base (5 de 8) y no cambian el resultado; borrar solo cambia a qué clase se asigna un error (\texttt{pruebaAnime2.jpg} pasa de cartoon a human).
+    \item \textbf{Las tres juntas} dan los mismos 4 de 8 que alejar sola, de modo que el efecto negativo parece venir de alejar y no de la combinación.
+\end{itemize}
+
+Ninguna técnica superó al modelo base. La hipótesis de los rostros recortados recibe un apoyo débil: alejar es la única que acierta una ilustración anime moderna, pero a cambio de otras dos imágenes. Cada variante se entrenó una sola vez y con 8 imágenes una diferencia de una imagen no se distingue del azar del entrenamiento, que no se midió.
+
+\subsection{Imágenes de 224 $\times$ 224 píxeles}
+
+Hasta aquí todos los modelos recibían imágenes de 128 $\times$ 128, mientras que EfficientNetB0 fue diseñada para 224 $\times$ 224 y a menor resolución se pierde detalle en las ilustraciones. Se repitió el modelo con imágenes estiradas y el aumento de datos anterior cambiando solo la resolución: las imágenes se transformaron de nuevo desde los archivos originales a 224 $\times$ 224, con la misma función y el mismo remuestreo Lanczos, y se entrenó con el mismo procedimiento en dos fases. Las imágenes externas también se evaluaron a 224 $\times$ 224.
+
+Con 224 píxeles la exactitud en validación sube de 99.69\% a 99.84\% y la de prueba de 99.77\% a 99.92\% (de 3 errores a 1), la mejor de las variantes con imágenes estiradas. En las imágenes externas el total no cambia (5 de 8, F1 macro de 0.635), pero sí cuáles se aciertan: \texttt{pruebaAnime2.jpg}, la ilustración de un personaje, se clasifica por primera vez como anime (65\%), y la manga \texttt{pruebaAnime3.jpg} sube a 95\% de confianza, mientras que el rostro pixelado \texttt{pruebaAnime4.jpg} pasa a cartoon (98\%). Todos los errores vuelven a clasificarse como cartoon. Es un solo entrenamiento y 8 imágenes, así que la mejora en validación y prueba es de dos imágenes y la ganancia y la pérdida en las externas no son concluyentes; con esos datos, aumentar la resolución no resolvió la falla de fondo.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % PREDICCIONES
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -527,6 +587,11 @@ EfficientNetB0 + Dropout & 0.9992 & 0.9992 & 1.0000 & 1.0000 & 0.5000 & 0.5222 \
 EfficientNetB0 + estirar & 0.9969 & 0.9968 & 0.9984 & 0.9984 & 0.5000 & 0.5222 \\
 EfficientNetB0 + aumento (padding) & 0.9969 & 0.9969 & 0.9984 & 0.9984 & 0.6250 & 0.6349 \\
 EfficientNetB0 + estirar y aumento & 0.9969 & 0.9968 & 0.9977 & 0.9976 & 0.6250 & 0.6349 \\
+EfficientNetB0 + estirar y aumento dirigido & 0.9945 & 0.9945 & 0.9930 & 0.9929 & 0.5000 & 0.4905 \\
+EfficientNetB0 + estirar y alejar & 0.9914 & 0.9914 & 0.9945 & 0.9945 & 0.5000 & 0.4889 \\
+EfficientNetB0 + estirar y recortar & 0.9961 & 0.9961 & 0.9969 & 0.9969 & 0.6250 & 0.6349 \\
+EfficientNetB0 + estirar y borrar & 0.9961 & 0.9961 & 0.9977 & 0.9976 & 0.6250 & 0.6111 \\
+EfficientNetB0 + estirar y aumento (224 px) & 0.9984 & 0.9985 & 0.9992 & 0.9992 & 0.6250 & 0.6349 \\
 \hline
 \end{tabular}
 }
@@ -539,7 +604,7 @@ EfficientNetB0 + estirar y aumento & 0.9969 & 0.9968 & 0.9977 & 0.9976 & 0.6250 
     \label{fig:matrices}
 \end{figure}
 
-En validación y en prueba todos los modelos superan el 99.5\% y las diferencias entre ellos son de una a tres imágenes, por lo que esos conjuntos no permiten distinguir entre modelos. Con las imágenes externas, en cambio, el desempeño cae de forma notable y sí aparecen diferencias: 25.0\% en la CNN (con o sin Dropout), 50.0\% en EfficientNetB0 (con o sin Dropout, o estirando) y 62.5\% con aumento de datos (con padding o estirando). Dropout no cambió ninguna predicción externa. La transferencia de aprendizaje y el aumento de datos mejoraron el resultado externo en 2 y en 1 de las 8 imágenes, respectivamente, lo cual no es concluyente con tan pocas imágenes. Ningún modelo resolvió las ilustraciones anime de estilo moderno. Por eso, la evaluación con imágenes externas es la que se usa para comparar los modelos.
+En validación y en prueba todos los modelos superan el 99.5\% y las diferencias entre ellos son de una a tres imágenes, por lo que esos conjuntos no permiten distinguir entre modelos. Con las imágenes externas, en cambio, el desempeño cae de forma notable y sí aparecen diferencias: 25.0\% en la CNN (con o sin Dropout), 50.0\% en EfficientNetB0 (con o sin Dropout, o estirando) y 62.5\% con aumento de datos (con padding o estirando). Dropout no cambió ninguna predicción externa; el aumento dirigido bajó a 50.0\% con más errores en prueba, y entrenar a 224 píxeles mejoró validación y prueba pero dejó en 62.5\% el resultado externo. La transferencia de aprendizaje y el aumento de datos mejoraron el resultado externo en 2 y en 1 de las 8 imágenes, respectivamente, lo cual no es concluyente con tan pocas imágenes. Ningún modelo resolvió las ilustraciones anime de estilo moderno. Por eso, la evaluación con imágenes externas es la que se usa para comparar los modelos.
 
 \section{Conclusiones}
 
@@ -549,7 +614,7 @@ Se construyó un clasificador de imágenes en tres clases (anime, cartoon y huma
     \item \textbf{La exactitud en validación y prueba no distingue entre los modelos.} Todos superan el 99.5\% y difieren en una a seis imágenes de 1,281. Además, el análisis exploratorio mostró que las clases difieren en resolución, peso de archivo, color y composición, y la validación y la prueba comparten esos sesgos con el entrenamiento, por lo que una cifra alta ahí no garantiza que el modelo haya aprendido el contenido de las imágenes.
     \item \textbf{Los modelos no generalizan bien a imágenes de otro origen.} En las 8 imágenes externas, la CNN base acierta 2 (25.0\%), y el mejor modelo, 5 (62.5\%). Los errores se concentran en la clase cartoon y ocurren con una confianza alta, sobre todo en ilustraciones anime de estilo moderno, que ningún modelo clasificó correctamente.
     \item \textbf{Qué ayudó.} La transferencia de aprendizaje con EfficientNetB0 pasó de 2 a 4 aciertos externos y el aumento de datos añadió uno más (la viñeta de manga en blanco y negro). Estirar las imágenes no cambió los aciertos, pero redujo la confianza de algunos errores.
-    \item \textbf{Qué no ayudó.} Dropout no cambió ninguna predicción externa en ninguna de las dos arquitecturas. Esto es coherente con que el problema no sea un sobreajuste clásico, ya que la exactitud de entrenamiento y la de validación eran casi iguales.
+    \item \textbf{Qué no ayudó.} Dropout no cambió ninguna predicción externa en ninguna de las dos arquitecturas. El aumento dirigido a los rostros recortados tampoco superó al aumento anterior (4 de 8 frente a 5 de 8, con más errores en prueba), y al separarlo, ni recortar ni borrar cambiaron el resultado y alejar fue la única que acertó una imagen nueva, pero perdió otras dos. Entrenar a 224 píxeles redujo los errores en prueba de 3 a 1, pero no cambió el total de aciertos externos (5 de 8). Esto es coherente con que el problema no sea un sobreajuste clásico, ya que la exactitud de entrenamiento y la de validación eran casi iguales.
     \item \textbf{Alcance de estos resultados.} El conjunto externo tiene solo 8 imágenes y cada modelo se entrenó una vez, por lo que las diferencias de uno o dos aciertos no son concluyentes. La explicación de que el anime de entrenamiento sean solo rostros recortados, y por eso fallen las ilustraciones con cuerpo, fondo o estilo distinto, es una hipótesis que no se comprobó.
 \end{itemize}
 

@@ -47,7 +47,7 @@ La primera ejecución genera `cache/`. Si ya existe un modelo en `modelos/`, el 
 python src/web/app.py
 ```
 
-y abre <http://127.0.0.1:8000>. Un selector permite elegir con cuál de los 7 modelos de `modelos/` se clasifica (por defecto, EfficientNetB0 + aumento de datos con padding, que acierta más imágenes externas). Se sube una imagen y la página muestra la clase predicha, la probabilidad de cada clase y la imagen tal como la ve el modelo (128×128). Al cambiar de modelo con una imagen ya cargada, la predicción se recalcula. Cada modelo recibe la imagen con el mismo redimensionado con que se entrenó (padding o estirar), que el servidor tiene registrado en `src/web/app.py`.
+y abre <http://127.0.0.1:8000>. Un selector permite elegir con cuál de los 9 modelos de `modelos/` se clasifica (por defecto, EfficientNetB0 + aumento de datos con padding, que acierta más imágenes externas). Se sube una imagen y la página muestra la clase predicha, la probabilidad de cada clase y la imagen tal como la ve el modelo (128×128, o 224×224 en el modelo de esa resolución). Al cambiar de modelo con una imagen ya cargada, la predicción se recalcula. Cada modelo recibe la imagen con el mismo redimensionado con que se entrenó (padding o estirar), que el servidor tiene registrado en `src/web/app.py`.
 
 **Reporte.** `docs/paper.tex` usa la clase `ieeeconf`, que no viene incluida y debe estar junto al archivo para compilarlo.
 
@@ -74,6 +74,15 @@ Cada tasa de Dropout se fijó de antemano con un valor estándar y no se ajustó
 6. **+ aumento de datos (padding)**: transformaciones aleatorias solo en entrenamiento: volteo, rotación (hasta 11°), zoom de hasta 25% con proporción variable, traslación, brillo/contraste/saturación, escala de grises (15%) y baja resolución (50%).
 7. **+ estirar y aumento de datos**: ambos cambios.
 
+**Aumento dirigido a la falla** (sección 11 del notebook). Sobre EfficientNetB0 con imágenes estiradas, se agregaron al aumento anterior tres transformaciones pensadas para simular que el anime no sea solo rostros recortados (hipótesis sin comprobar): alejar la imagen (40-80% del lado, sobre fondo plano), recorte agresivo (30-80% del área) y borrado aleatorio (2-25% del área, con ruido). Se probaron juntas y por separado (ablación):
+
+8. **+ estirar y aumento dirigido**: las tres transformaciones. Una ejecución exploratoria con padding, no guardada, dio 5 de 8 en las externas (F1 0.611), 99.30% en validación y 99.38% en prueba.
+9. **+ estirar y alejar**, 10. **+ estirar y recortar** y 11. **+ estirar y borrar**: el aumento de la sección 10 más una sola de las transformaciones (alejar 35%, recortar 35%, borrar 50%).
+
+**Imágenes de 224 × 224** (sección 12 del notebook).
+
+12. **+ estirar y aumento, a 224 px**: el modelo 7 pero con las imágenes transformadas a 224 × 224, la resolución para la que se diseñó EfficientNetB0 (hasta aquí se usaba 128 × 128). La caché va en `cache/stretch_224`.
+
 Cada modelo se evalúa con el mismo redimensionado con que se entrenó. Las cachés de las dos versiones viven en `cache/pad_128` y `cache/stretch_128`.
 
 ## Resultados
@@ -87,6 +96,11 @@ Cada modelo se evalúa con el mismo redimensionado con que se entrenó. Las cach
 | EfficientNetB0 + estirar | 99.69% / 0.9968 | 99.84% / 0.9984 | 2 | 50.0% / 0.522 |
 | EfficientNetB0 + aumento (padding) | 99.69% / 0.9969 | 99.84% / 0.9984 | 2 | 62.5% / 0.635 |
 | EfficientNetB0 + estirar y aumento | 99.69% / 0.9968 | 99.77% / 0.9976 | 3 | 62.5% / 0.635 |
+| EfficientNetB0 + estirar y aumento dirigido | 99.45% / 0.9945 | 99.30% / 0.9929 | 9 | 50.0% / 0.490 |
+| EfficientNetB0 + estirar y alejar | 99.14% / 0.9914 | 99.45% / 0.9945 | 7 | 50.0% / 0.489 |
+| EfficientNetB0 + estirar y recortar | 99.61% / 0.9961 | 99.69% / 0.9969 | 4 | 62.5% / 0.635 |
+| EfficientNetB0 + estirar y borrar | 99.61% / 0.9961 | 99.77% / 0.9976 | 3 | 62.5% / 0.611 |
+| EfficientNetB0 + estirar y aumento (224 px) | 99.84% / 0.9985 | 99.92% / 0.9992 | 1 | 62.5% / 0.635 |
 
 En validación y prueba todos los modelos superan el 99.5% y se distinguen por una a tres imágenes, así que esos conjuntos ya no sirven para compararlos.
 
@@ -100,6 +114,8 @@ En validación y prueba todos los modelos superan el 99.5% y se distinguen por u
 - **Estirar** no cambia ningún acierto externo, pero baja la seguridad de los errores (una ilustración anime pasa de 100% a 84% de confianza como cartoon).
 - **El aumento de datos** corrige una imagen más (la viñeta de manga en blanco y negro), con padding o estirando: 5 de 8. Combinar ambos cambios no mejora respecto al aumento solo.
 - En validación y prueba las variantes con cambios en los datos rinden un poco peor (99.69% frente a 99.92% en validación), el costo esperable de entrenar con datos más variados.
+- **El aumento dirigido no mejoró** (4 de 8, con 9 errores en prueba frente a 3). Por separado: **alejar** es la única transformación que acierta una imagen nueva (`pruebaAnime.jpg`), pero pierde la viñeta de manga y el rostro pixelado y es la que más empeora validación y prueba; **recortar** y **borrar** aciertan las mismas imágenes que el modelo base, sin cambio. Cada variante se entrenó una sola vez y con 8 imágenes una diferencia de una imagen no se distingue del azar.
+- **A 224 px** la exactitud sube en validación (99.84%) y en prueba (99.92%, 1 error, la mejor de las variantes estiradas), pero las externas se quedan en 5 de 8: `pruebaAnime2.jpg` se acierta por primera vez (anime, 65%) y se pierde el rostro pixelado `pruebaAnime4.jpg` (cartoon, 98%). Un solo entrenamiento y 8 imágenes: no concluyente.
 - **En todas las variantes siguen fallando** las ilustraciones anime de estilo moderno y el modelo anatómico, y todos los errores van a cartoon. Una posible explicación (sin comprobar) es que el anime del dataset son solo rostros recortados, y el aumento no crea personajes con cuerpo, fondos ni estilos nuevos.
 
 Es un conjunto muy pequeño y las diferencias de 1 o 2 aciertos (transfer learning, aumento de datos) o de 1 imagen en prueba (Dropout) no son concluyentes, pero indica que la exactitud en validación y prueba **no se mantiene con imágenes de otro origen**. El análisis exploratorio mostró que las clases difieren también en resolución, peso de archivo, color y composición, y la validación y la prueba comparten esos sesgos con el entrenamiento. Por eso las mejoras siguientes se comparan con las imágenes externas y no solo con la validación, que ya está saturada.
