@@ -1,0 +1,374 @@
+[
+ {
+  "config": 2,
+  "semilla": 42,
+  "val_exactitud": 0.99921875,
+  "val_f1": 0.9992482155714303,
+  "val_perdida": 0.004202571697533131,
+  "ext_aciertos": 2,
+  "ext_f1": 0.13333333333333333,
+  "ext_pred": [
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon"
+  ],
+  "ext_conf": [
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0
+  ],
+  "parametros_entrenables": 7392707,
+  "segundos": 232.0
+ },
+ {
+  "config": 2,
+  "semilla": 43,
+  "val_exactitud": 0.99609375,
+  "val_f1": 0.9961447890848558,
+  "val_perdida": 0.00930088385939598,
+  "ext_aciertos": 2,
+  "ext_f1": 0.13333333333333333,
+  "ext_pred": [
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon"
+  ],
+  "ext_conf": [
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   0.9289,
+   1.0,
+   1.0
+  ],
+  "parametros_entrenables": 7392707,
+  "segundos": 516.3
+ },
+ {
+  "config": 2,
+  "semilla": 44,
+  "val_exactitud": 0.99765625,
+  "val_f1": 0.9977034258439391,
+  "val_perdida": 0.0042547136545181274,
+  "ext_aciertos": 2,
+  "ext_f1": 0.13333333333333333,
+  "ext_pred": [
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon"
+  ],
+  "ext_conf": [
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   0.9998,
+   1.0,
+   1.0
+  ],
+  "parametros_entrenables": 7392707,
+  "segundos": 244.5
+ },
+ {
+  "config": 3,
+  "semilla": 42,
+  "val_exactitud": 0.9984375,
+  "val_f1": 0.9984964827527757,
+  "val_perdida": 0.004411051981151104,
+  "ext_aciertos": 2,
+  "ext_f1": 0.13333333333333333,
+  "ext_pred": [
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon"
+  ],
+  "ext_conf": [
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0
+  ],
+  "parametros_entrenables": 3305027,
+  "segundos": 1827.8
+ },
+ {
+  "config": 3,
+  "semilla": 43,
+  "val_exactitud": 0.9984375,
+  "val_f1": 0.9984544481257268,
+  "val_perdida": 0.00652284175157547,
+  "ext_aciertos": 2,
+  "ext_f1": 0.13333333333333333,
+  "ext_pred": [
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon"
+  ],
+  "ext_conf": [
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0
+  ],
+  "parametros_entrenables": 3305027,
+  "segundos": 536.0
+ },
+ {
+  "config": 3,
+  "semilla": 44,
+  "val_exactitud": 0.9984375,
+  "val_f1": 0.9984544481257268,
+  "val_perdida": 0.010425572283565998,
+  "ext_aciertos": 2,
+  "ext_f1": 0.13333333333333333,
+  "ext_pred": [
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon"
+  ],
+  "ext_conf": [
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   0.9961,
+   1.0,
+   1.0
+  ],
+  "parametros_entrenables": 3305027,
+  "segundos": 280.9
+ },
+ {
+  "config": 4,
+  "semilla": 42,
+  "val_exactitud": 0.99765625,
+  "val_f1": 0.9977013270977375,
+  "val_perdida": 0.004052463918924332,
+  "ext_aciertos": 2,
+  "ext_f1": 0.13333333333333333,
+  "ext_pred": [
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon"
+  ],
+  "ext_conf": [
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0
+  ],
+  "parametros_entrenables": 1568579,
+  "segundos": 352.9
+ },
+ {
+  "config": 4,
+  "semilla": 43,
+  "val_exactitud": 0.99453125,
+  "val_f1": 0.9945145556880056,
+  "val_perdida": 0.02627265453338623,
+  "ext_aciertos": 2,
+  "ext_f1": 0.13333333333333333,
+  "ext_pred": [
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon"
+  ],
+  "ext_conf": [
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0
+  ],
+  "parametros_entrenables": 1568579,
+  "segundos": 348.8
+ },
+ {
+  "config": 4,
+  "semilla": 44,
+  "val_exactitud": 0.99296875,
+  "val_f1": 0.9930536759766619,
+  "val_perdida": 0.01900920644402504,
+  "ext_aciertos": 2,
+  "ext_f1": 0.13333333333333333,
+  "ext_pred": [
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon"
+  ],
+  "ext_conf": [
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0
+  ],
+  "parametros_entrenables": 1568579,
+  "segundos": 357.0
+ },
+ {
+  "config": 5,
+  "semilla": 42,
+  "val_exactitud": 0.98984375,
+  "val_f1": 0.989972720678696,
+  "val_perdida": 0.028103848919272423,
+  "ext_aciertos": 2,
+  "ext_f1": 0.13333333333333333,
+  "ext_pred": [
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon"
+  ],
+  "ext_conf": [
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   0.9998,
+   1.0,
+   1.0
+  ],
+  "parametros_entrenables": 1831235,
+  "segundos": 404.0
+ },
+ {
+  "config": 5,
+  "semilla": 43,
+  "val_exactitud": 0.99765625,
+  "val_f1": 0.9976483063320801,
+  "val_perdida": 0.022300461307168007,
+  "ext_aciertos": 2,
+  "ext_f1": 0.13333333333333333,
+  "ext_pred": [
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon"
+  ],
+  "ext_conf": [
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   0.9998,
+   1.0,
+   1.0
+  ],
+  "parametros_entrenables": 1831235,
+  "segundos": 407.9
+ },
+ {
+  "config": 5,
+  "semilla": 44,
+  "val_exactitud": 0.99609375,
+  "val_f1": 0.9961445749913892,
+  "val_perdida": 0.018515627831220627,
+  "ext_aciertos": 2,
+  "ext_f1": 0.13333333333333333,
+  "ext_pred": [
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon",
+   "cartoon"
+  ],
+  "ext_conf": [
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   0.9794,
+   1.0,
+   1.0
+  ],
+  "parametros_entrenables": 1831235,
+  "segundos": 413.4
+ }
+]

@@ -17,6 +17,7 @@ Evidencia del módulo de Deep Learning. Redes neuronales convolucionales (Tensor
 ├── imgExternas/               # imágenes que no son del dataset, para probar la generalización
 ├── modelos/                   # modelos entrenados (.keras)
 ├── historiales/               # curvas de entrenamiento de cada modelo (.json), las lee el notebook
+├── resultados/                # resultados de las comparaciones con varias semillas (.json), las lee el notebook
 ├── docs/
 │   ├── paper.tex              # reporte (formato IEEE)
 │   └── figuras/               # figuras del reporte (varias las genera el notebook)
@@ -86,6 +87,17 @@ Cada tasa de Dropout se fijó de antemano con un valor estándar y no se ajustó
 
 Cada modelo se evalúa con el mismo redimensionado con que se entrenó. Las cachés de las dos versiones viven en `cache/pad_128` y `cache/stretch_128`.
 
+**Profundidad de la CNN** (sección 13 del notebook). Siguiendo a Gando et al. (2016, [doi:10.1016/j.eswa.2016.08.057](https://doi.org/10.1016/j.eswa.2016.08.057)), que compararon CNN propias de 1 a 5 capas convolucionales, se entrenó la CNN base con 2, 3, 4 y 5 bloques (filtros 32, 64, 128, 256 y 512), 3 semillas cada una (42, 43 y 44). La regla se fijó antes de entrenar: adoptar otra profundidad solo si la validación media no baja más de una desviación estándar respecto a 3 bloques y si acierta en promedio al menos 1 imagen externa más. Los modelos de esta comparación no se guardan; sus resultados están en `resultados/profundidad_cnn.json`.
+
+| Bloques | Parámetros | Validación (media ± DE) | Pérdida de validación | Externas |
+|---|---|---|---|---|
+| 2 | 7,392,707 | 99.77% ± 0.13 | 0.0059 | 2 de 8 |
+| **3 (actual)** | 3,305,027 | **99.84% ± 0.00** | 0.0071 | 2 de 8 |
+| 4 | 1,568,579 | 99.51% ± 0.19 | 0.0164 | 2 de 8 |
+| 5 | 1,831,235 | 99.45% ± 0.34 | 0.0230 | 2 de 8 |
+
+Se mantienen los 3 bloques: tienen la mejor validación y ninguna profundidad cambia las externas (las 12 redes clasifican las 8 imágenes como cartoon, con al menos 92.9% de confianza). Con la semilla 42, la red de 3 bloques reproduce exactamente la CNN base.
+
 ## Resultados
 
 | Modelo | Validación (exactitud / F1) | Prueba (exactitud / F1) | Errores en prueba | Externas, 8 imágenes (exactitud / F1) |
@@ -130,4 +142,6 @@ Es un conjunto muy pequeño y las diferencias de 1 o 2 aciertos (transfer learni
 - [x] Transferencia de aprendizaje (EfficientNetB0)
 - [x] Regularización con Dropout (sin mejora medible)
 - [x] Aumento de datos y estirar las imágenes (mejora modesta)
+- [x] Profundidad de la CNN, de 2 a 5 bloques (sin mejora: se mantienen 3)
+- [ ] Profundidad del ajuste fino de EfficientNetB0
 - [ ] Reporte final

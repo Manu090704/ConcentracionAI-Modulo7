@@ -59,9 +59,9 @@ Manuel Bajos Rivera, A01711581
 
 En este proyecto se realiza la clasificación automática de imágenes en tres categorías: anime, caricaturas (cartoon) y personas (human). Se utiliza el conjunto de datos Anime vs Cartoon vs Human de Kaggle, con 8,917 imágenes casi balanceadas entre las tres clases (3,004 anime, 2,913 cartoon y 3,000 human), de las cuales quedan 8,534 tras eliminar 383 duplicados exactos. El análisis exploratorio mostró además diferencias marcadas de resolución, peso de archivo y color entre clases, que podrían permitir al modelo clasificar por atajos y no por contenido.
 
-Se implementó una red neuronal convolucional propia con TensorFlow y Keras como modelo base, y se comparó con transferencia de aprendizaje usando EfficientNetB0 preentrenada con ImageNet. Se probaron además, cada uno por separado, la regularización con Dropout, estirar las imágenes en lugar de rellenarlas, el aumento de datos, un aumento dirigido a la falla (alejar, recortar y borrar zonas, también por separado) y imágenes de 224 $\times$ 224 píxeles. Los modelos se evaluaron en validación, en prueba y con 8 imágenes externas al conjunto de datos.
+Se implementó una red neuronal convolucional propia con TensorFlow y Keras como modelo base, y se comparó con transferencia de aprendizaje usando EfficientNetB0 preentrenada con ImageNet. Se probaron además, cada uno por separado, la regularización con Dropout, estirar las imágenes en lugar de rellenarlas, el aumento de datos, un aumento dirigido a la falla (alejar, recortar y borrar zonas, también por separado) imágenes de 224 $\times$ 224 píxeles y redes con 2 a 5 bloques convolucionales. Los modelos se evaluaron en validación, en prueba y con 8 imágenes externas al conjunto de datos.
 
-En prueba, la CNN base alcanzó 99.53\% de exactitud y EfficientNetB0 99.92\%, pero todos los modelos superan el 99.5\% y esas métricas no permiten distinguirlos. Con las imágenes externas el desempeño cae de forma notable: la CNN base acierta 2 de 8 imágenes (25.0\%), EfficientNetB0 acierta 4 de 8 (50.0\%) y 5 de 8 (62.5\%) con aumento de datos, mientras que Dropout, estirar, el aumento dirigido y la mayor resolución no mejoraron ese resultado. Ningún modelo clasifica correctamente las ilustraciones anime de estilo moderno, y todos sus errores se clasifican como cartoon. Con un conjunto externo tan pequeño las diferencias no son concluyentes, pero indican que la exactitud en validación y prueba no se mantiene con imágenes de otro origen, lo que podría deberse a la poca diversidad de los datos de entrenamiento. Los modelos pueden probarse mediante una interfaz web con selección de modelo.
+En prueba, la CNN base alcanzó 99.53\% de exactitud y EfficientNetB0 99.92\%, pero todos los modelos superan el 99.5\% y esas métricas no permiten distinguirlos. Con las imágenes externas el desempeño cae de forma notable: la CNN base acierta 2 de 8 imágenes (25.0\%), EfficientNetB0 acierta 4 de 8 (50.0\%) y 5 de 8 (62.5\%) con aumento de datos, mientras que Dropout, estirar, el aumento dirigido, la mayor resolución y cambiar la profundidad de la CNN no mejoraron ese resultado. Ningún modelo clasifica correctamente las ilustraciones anime de estilo moderno, y todos sus errores se clasifican como cartoon. Con un conjunto externo tan pequeño las diferencias no son concluyentes, pero indican que la exactitud en validación y prueba no se mantiene con imágenes de otro origen, lo que podría deberse a la poca diversidad de los datos de entrenamiento. Los modelos pueden probarse mediante una interfaz web con selección de modelo.
 
 \end{abstract}
 
@@ -274,7 +274,7 @@ Como las etiquetas son números enteros, se usa la entropía cruzada categórica
 L = -\frac{1}{N}\sum_{i=1}^{N}\log p_{i,y_i}.
 \end{equation}
 
-El entrenamiento utiliza el optimizador Adam con una tasa de aprendizaje de 0.001, lotes de 32 imágenes y 15 épocas.
+El entrenamiento utiliza el optimizador Adam con una tasa de aprendizaje de 0.001, lotes de 32 imágenes y 15 épocas. La tasa de aprendizaje y el tamaño de lote son los valores predeterminados de Keras, y el número de épocas y de bloques convolucionales se fijaron de antemano, sin ajustarlos. La profundidad se revisó más adelante comparando redes de 2 a 5 bloques (sección~\ref{sec:profundidad_cnn}).
 
 \subsection{Evaluación del modelo base}
 
@@ -293,7 +293,7 @@ Estos valores son muy altos, pero, como se muestra en la sección de prediccione
 
 \subsection{Transferencia de aprendizaje}
 
-Como la CNN base solo acertó 2 de las 8 imágenes externas, se probó una red preentrenada. La transferencia de aprendizaje aprovecha las características visuales que aprendió una red entrenada con un conjunto de datos muy grande: las primeras capas detectan rasgos generales, como bordes y texturas, que sirven para muchas tareas, y solo las últimas capas se ajustan al problema nuevo. Gando et al.~\cite{gando} aplican esta estrategia a un problema cercano, distinguir ilustraciones de fotografías: ajustan las últimas capas de AlexNet preentrenada con ImageNet, con 20,000 imágenes, y reportan una exactitud de 96.8\%, superior a la de las redes convolucionales entrenadas desde cero que compararon, la mejor de las cuales alcanzó 93.0\%.
+Como la CNN base solo acertó 2 de las 8 imágenes externas, se probó una red preentrenada. La transferencia de aprendizaje aprovecha las características visuales que aprendió una red entrenada con un conjunto de datos muy grande: las primeras capas detectan rasgos generales, como bordes y texturas, que sirven para muchas tareas, y solo las últimas capas se ajustan al problema nuevo. Gando et al.~\cite{gando} aplican esta estrategia a un problema cercano, distinguir ilustraciones de fotografías: ajustan la capa totalmente conectada FC7 de AlexNet preentrenada con ImageNet y reinician la capa de salida (FC8), con el argumento de que su conjunto de datos (20,000 imágenes) es pequeño frente a ImageNet, y reportan una exactitud de 96.8\%, superior a la de las CNN propias que entrenaron desde cero con entre 1 y 5 capas convolucionales, la mejor de las cuales (la de 5 capas) alcanzó 93.0\%.
 
 Se utilizó EfficientNetB0~\cite{efficientnet} con los pesos preentrenados en ImageNet~\cite{imagenet}. EfficientNet escala de forma conjunta la profundidad, el ancho y la resolución de la red, y la versión B0 tiene 4,049,571 parámetros sin su clasificador original. Se le quitó ese clasificador y se añadió una cabeza nueva, formada por una capa de agrupación promedio global y una capa densa de 3 neuronas con softmax (3,843 parámetros). Como se explicó en la sección de ETL, esta red recibe los píxeles en el rango $[0,255]$ sin dividirlos entre 255.
 
@@ -501,6 +501,43 @@ Hasta aquí todos los modelos recibían imágenes de 128 $\times$ 128, mientras 
 
 Con 224 píxeles la exactitud en validación sube de 99.69\% a 99.84\% y la de prueba de 99.77\% a 99.92\% (de 3 errores a 1), la mejor de las variantes con imágenes estiradas. En las imágenes externas el total no cambia (5 de 8, F1 macro de 0.635), pero sí cuáles se aciertan: \texttt{pruebaAnime2.jpg}, la ilustración de un personaje, se clasifica por primera vez como anime (65\%), y la manga \texttt{pruebaAnime3.jpg} sube a 95\% de confianza, mientras que el rostro pixelado \texttt{pruebaAnime4.jpg} pasa a cartoon (98\%). Todos los errores vuelven a clasificarse como cartoon. Es un solo entrenamiento y 8 imágenes, así que la mejora en validación y prueba es de dos imágenes y la ganancia y la pérdida en las externas no son concluyentes; con esos datos, aumentar la resolución no resolvió la falla de fondo.
 
+\subsection{Profundidad de la CNN propia}
+\label{sec:profundidad_cnn}
+
+La CNN base tiene 3 bloques convolucionales, un valor que se fijó de antemano. Para revisarlo se siguió la idea de Gando et al.~\cite{gando}, que en un problema cercano entrenaron desde cero CNN propias con entre 1 y 5 capas convolucionales y compararon su exactitud. Se entrenó la misma red con 2, 3, 4 y 5 bloques, en los que cada bloque añade una convolución de $3 \times 3$ con el doble de filtros que el anterior (32, 64, 128, 256 y 512) y una agrupación máxima de $2 \times 2$; todo lo demás (padding, sin regularización ni aumento de datos, Adam con 0.001, lotes de 32 y 15 épocas) es igual al de la CNN base.
+
+Como la validación está saturada y una diferencia de una imagen puede deberse al azar del entrenamiento, cada profundidad se entrenó con tres semillas (42, 43 y 44), incluida la de 3 bloques, que es la referencia. La regla de decisión se fijó antes de entrenar: una profundidad se adopta solo si su exactitud media de validación no queda por debajo de la de la referencia menos una desviación estándar y si, además, acierta en promedio al menos una imagen externa más que la referencia. Se exige la segunda condición porque las métricas del conjunto de datos comparten sesgos con el entrenamiento y pueden dar un falso positivo. El conjunto de prueba no se usó para elegir.
+
+\begin{table}[H]
+\caption{Comparación de profundidades de la CNN propia (media y desviación estándar sobre 3 semillas)}
+\label{tab:profundidad_cnn}
+\centering
+\footnotesize
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{ccccc}
+\hline
+\textbf{Bloques} & \textbf{Parámetros} & \textbf{Exactitud de validación} & \textbf{Pérdida de validación} & \textbf{Aciertos externos} \\
+\hline
+2 & 7,392,707 & 0.9977 $\pm$ 0.0013 & 0.0059 & 2 de 8 \\
+3 (referencia) & 3,305,027 & 0.9984 $\pm$ 0.0000 & 0.0071 & 2 de 8 \\
+4 & 1,568,579 & 0.9951 $\pm$ 0.0019 & 0.0164 & 2 de 8 \\
+5 & 1,831,235 & 0.9945 $\pm$ 0.0034 & 0.0230 & 2 de 8 \\
+\hline
+\end{tabular}
+}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{figuras/profundidad_cnn.png}
+    \caption{Exactitud de validación y aciertos en imágenes externas según el número de bloques convolucionales (media y desviación estándar sobre 3 semillas).}
+    \label{fig:profundidad_cnn}
+\end{figure}
+
+La Tabla~\ref{tab:profundidad_cnn} y la Figura~\ref{fig:profundidad_cnn} muestran el resultado. La red de 3 bloques obtuvo la mayor exactitud media de validación (99.84\% con las tres semillas; con la semilla 42 reproduce exactamente la CNN base), mientras que las redes de 4 y 5 bloques quedaron algo por debajo y con más variación entre semillas, y la de 2 bloques quedó en un punto intermedio. En las imágenes externas no hubo ninguna diferencia: las 12 redes entrenadas acertaron solo las dos caricaturas, porque todas clasificaron las 8 imágenes como cartoon, con una confianza de al menos 92.9\%. Ninguna profundidad cumple la regla, por lo que se mantienen los 3 bloques.
+
+A diferencia de Gando et al., en este caso más profundidad no mejoró la red. Sus redes se entrenaron con imágenes de $256 \times 256$, normalización por lotes y 100 épocas, con otros datos, por lo que los resultados no son directamente comparables. Que el error externo sea el mismo con cualquier profundidad sugiere, sin comprobarlo, que la falla de la CNN no depende de su capacidad sino de los datos con que se entrena.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % PREDICCIONES
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -604,18 +641,18 @@ EfficientNetB0 + estirar y aumento (224 px) & 0.9984 & 0.9985 & 0.9992 & 0.9992 
     \label{fig:matrices}
 \end{figure}
 
-En validación y en prueba todos los modelos superan el 99.5\% y las diferencias entre ellos son de una a tres imágenes, por lo que esos conjuntos no permiten distinguir entre modelos. Con las imágenes externas, en cambio, el desempeño cae de forma notable y sí aparecen diferencias: 25.0\% en la CNN (con o sin Dropout), 50.0\% en EfficientNetB0 (con o sin Dropout, o estirando) y 62.5\% con aumento de datos (con padding o estirando). Dropout no cambió ninguna predicción externa; el aumento dirigido bajó a 50.0\% con más errores en prueba, y entrenar a 224 píxeles mejoró validación y prueba pero dejó en 62.5\% el resultado externo. La transferencia de aprendizaje y el aumento de datos mejoraron el resultado externo en 2 y en 1 de las 8 imágenes, respectivamente, lo cual no es concluyente con tan pocas imágenes. Ningún modelo resolvió las ilustraciones anime de estilo moderno. Por eso, la evaluación con imágenes externas es la que se usa para comparar los modelos.
+En validación y en prueba todos los modelos superan el 99.5\% y las diferencias entre ellos son de una a tres imágenes, por lo que esos conjuntos no permiten distinguir entre modelos. Con las imágenes externas, en cambio, el desempeño cae de forma notable y sí aparecen diferencias: 25.0\% en la CNN (con o sin Dropout), 50.0\% en EfficientNetB0 (con o sin Dropout, o estirando) y 62.5\% con aumento de datos (con padding o estirando). Dropout no cambió ninguna predicción externa; el aumento dirigido bajó a 50.0\% con más errores en prueba, entrenar a 224 píxeles mejoró validación y prueba pero dejó en 62.5\% el resultado externo, y la CNN acertó las mismas 2 imágenes con 2, 3, 4 o 5 bloques. La transferencia de aprendizaje y el aumento de datos mejoraron el resultado externo en 2 y en 1 de las 8 imágenes, respectivamente, lo cual no es concluyente con tan pocas imágenes. Ningún modelo resolvió las ilustraciones anime de estilo moderno. Por eso, la evaluación con imágenes externas es la que se usa para comparar los modelos.
 
 \section{Conclusiones}
 
-Se construyó un clasificador de imágenes en tres clases (anime, cartoon y human) y se comparó una CNN propia con transferencia de aprendizaje y con tres modificaciones: Dropout, estirar las imágenes y aumento de datos. Las conclusiones son las siguientes.
+Se construyó un clasificador de imágenes en tres clases (anime, cartoon y human) y se comparó una CNN propia con transferencia de aprendizaje y con varias modificaciones: Dropout, estirar las imágenes, aumento de datos (general y dirigido), mayor resolución y distintas profundidades de la CNN. Las conclusiones son las siguientes.
 
 \begin{itemize}
     \item \textbf{La exactitud en validación y prueba no distingue entre los modelos.} Todos superan el 99.5\% y difieren en una a seis imágenes de 1,281. Además, el análisis exploratorio mostró que las clases difieren en resolución, peso de archivo, color y composición, y la validación y la prueba comparten esos sesgos con el entrenamiento, por lo que una cifra alta ahí no garantiza que el modelo haya aprendido el contenido de las imágenes.
     \item \textbf{Los modelos no generalizan bien a imágenes de otro origen.} En las 8 imágenes externas, la CNN base acierta 2 (25.0\%), y el mejor modelo, 5 (62.5\%). Los errores se concentran en la clase cartoon y ocurren con una confianza alta, sobre todo en ilustraciones anime de estilo moderno, que ningún modelo clasificó correctamente.
     \item \textbf{Qué ayudó.} La transferencia de aprendizaje con EfficientNetB0 pasó de 2 a 4 aciertos externos y el aumento de datos añadió uno más (la viñeta de manga en blanco y negro). Estirar las imágenes no cambió los aciertos, pero redujo la confianza de algunos errores.
-    \item \textbf{Qué no ayudó.} Dropout no cambió ninguna predicción externa en ninguna de las dos arquitecturas. El aumento dirigido a los rostros recortados tampoco superó al aumento anterior (4 de 8 frente a 5 de 8, con más errores en prueba), y al separarlo, ni recortar ni borrar cambiaron el resultado y alejar fue la única que acertó una imagen nueva, pero perdió otras dos. Entrenar a 224 píxeles redujo los errores en prueba de 3 a 1, pero no cambió el total de aciertos externos (5 de 8). Esto es coherente con que el problema no sea un sobreajuste clásico, ya que la exactitud de entrenamiento y la de validación eran casi iguales.
-    \item \textbf{Alcance de estos resultados.} El conjunto externo tiene solo 8 imágenes y cada modelo se entrenó una vez, por lo que las diferencias de uno o dos aciertos no son concluyentes. La explicación de que el anime de entrenamiento sean solo rostros recortados, y por eso fallen las ilustraciones con cuerpo, fondo o estilo distinto, es una hipótesis que no se comprobó.
+    \item \textbf{Qué no ayudó.} Dropout no cambió ninguna predicción externa en ninguna de las dos arquitecturas. El aumento dirigido a los rostros recortados tampoco superó al aumento anterior (4 de 8 frente a 5 de 8, con más errores en prueba), y al separarlo, ni recortar ni borrar cambiaron el resultado y alejar fue la única que acertó una imagen nueva, pero perdió otras dos. Entrenar a 224 píxeles redujo los errores en prueba de 3 a 1, pero no cambió el total de aciertos externos (5 de 8). Cambiar la profundidad de la CNN (de 2 a 5 bloques, con 3 semillas cada una) tampoco: las 12 redes clasificaron las 8 imágenes externas como cartoon. Esto es coherente con que el problema no sea un sobreajuste clásico, ya que la exactitud de entrenamiento y la de validación eran casi iguales.
+    \item \textbf{Alcance de estos resultados.} El conjunto externo tiene solo 8 imágenes y, salvo en la comparación de profundidades, cada modelo se entrenó una vez, por lo que las diferencias de uno o dos aciertos no son concluyentes. La explicación de que el anime de entrenamiento sean solo rostros recortados, y por eso fallen las ilustraciones con cuerpo, fondo o estilo distinto, es una hipótesis que no se comprobó.
 \end{itemize}
 
 Como trabajo futuro, lo más probable es que el mayor avance venga de ampliar y diversificar los datos de entrenamiento (por ejemplo, anime con cuerpo completo y fondos, y fuentes distintas para cada clase), y de evaluar con un conjunto externo más grande y con varias repeticiones del entrenamiento para poder confirmar diferencias pequeñas.
