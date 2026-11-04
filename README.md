@@ -15,7 +15,8 @@ Evidencia del módulo de Deep Learning. Redes neuronales convolucionales (Tensor
 │       ├── app.py             # servidor Flask: sirve la página y la ruta /predict
 │       └── static/            # interfaz: index.html, style.css, script.js
 ├── imgExternas/               # imágenes que no son del dataset, para probar la generalización
-├── modelos/                   # modelos entrenados (.keras) e historial de entrenamiento
+├── modelos/                   # modelos entrenados (.keras)
+├── historiales/               # curvas de entrenamiento de cada modelo (.json), las lee el notebook
 ├── docs/
 │   ├── paper.tex              # reporte (formato IEEE)
 │   └── figuras/               # figuras del reporte (varias las genera el notebook)
