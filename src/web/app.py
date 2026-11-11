@@ -27,6 +27,10 @@ MAX_PIXELS = 50_000_000
 # (128 si no se indica). "externas" son los aciertos
 # del modelo en las 8 imagenes externas del notebook (seccion 7 en adelante).
 MODELS = {
+    "efficientnetb0_stretch_aug_head": {
+        "nombre": "EfficientNetB0 + estirar, aumento y solo la cabeza",
+        "archivo": "efficientnetb0_stretch_aug_head.keras", "preprocesado": "stretch",
+        "detalle": "Modelo seleccionado: transferencia de aprendizaje, imágenes estiradas y aumento de datos; la base EfficientNetB0 permanece congelada. Aciertos en imágenes externas: 6 de 8."},
     "efficientnetb0_pad_aug": {
         "nombre": "EfficientNetB0 + aumento de datos (padding)",
         "archivo": "efficientnetb0_pad_aug.keras", "preprocesado": "pad",
@@ -65,7 +69,7 @@ MODELS = {
         "detalle": "Red entrenada desde cero, sin regularización. Aciertos en imágenes externas: 2 de 8."},
 }
 AVAILABLE = {k: v for k, v in MODELS.items() if (MODELS_DIR / v["archivo"]).exists()}
-DEFAULT_MODEL = next(iter(AVAILABLE), None)
+DEFAULT_MODEL = "efficientnetb0_stretch_aug_head" if "efficientnetb0_stretch_aug_head" in AVAILABLE else next(iter(AVAILABLE), None)
 
 app = Flask(__name__, static_folder="static", static_url_path="")
 app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_MB * 1024 * 1024

@@ -49,7 +49,7 @@ La primera ejecución genera `cache/`. Si ya existe un modelo en `modelos/`, el 
 python src/web/app.py
 ```
 
-y abre <http://127.0.0.1:8000>. Un selector permite elegir con cuál de los 9 modelos de `modelos/` se clasifica (por defecto, EfficientNetB0 + aumento de datos con padding, que acierta más imágenes externas). Se sube una imagen y la página muestra la clase predicha, la probabilidad de cada clase y la imagen tal como la ve el modelo (128×128, o 224×224 en el modelo de esa resolución). Al cambiar de modelo con una imagen ya cargada, la predicción se recalcula. Cada modelo recibe la imagen con el mismo redimensionado con que se entrenó (padding o estirar), que el servidor tiene registrado en `src/web/app.py`.
+y abre <http://127.0.0.1:8000>. Un selector permite elegir con cuál de los 10 modelos de `modelos/` se clasifica. Por defecto usa EfficientNetB0 con imágenes estiradas, aumento de datos y solo la cabeza entrenada, que obtuvo 6 de 8 aciertos externos. Se sube una imagen y la página muestra la clase predicha, la probabilidad de cada clase y la imagen tal como la ve el modelo (128×128, o 224×224 en el modelo de esa resolución). Al cambiar de modelo con una imagen ya cargada, la predicción se recalcula. Cada modelo recibe la imagen con el mismo redimensionado con que se entrenó (padding o estirar), que el servidor tiene registrado en `src/web/app.py`.
 
 **Reporte.** `docs/paper.tex` usa la clase `ieeeconf`, que no viene incluida y debe estar junto al archivo para compilarlo.
 
@@ -87,7 +87,7 @@ Cada tasa de Dropout se fijó de antemano con un valor estándar y no se ajustó
 
 Cada modelo se evalúa con el mismo redimensionado con que se entrenó. Las cachés de las dos versiones viven en `cache/pad_128` y `cache/stretch_128`.
 
-**Profundidad de la CNN** (sección 13 del notebook). Siguiendo a Gando et al. (2016, [doi:10.1016/j.eswa.2016.08.057](https://doi.org/10.1016/j.eswa.2016.08.057)), que compararon CNN propias de 1 a 5 capas convolucionales, se entrenó la CNN base con 2, 3, 4 y 5 bloques (filtros 32, 64, 128, 256 y 512), 3 semillas cada una (42, 43 y 44). La regla se fijó antes de entrenar: adoptar otra profundidad solo si la validación media no baja más de una desviación estándar respecto a 3 bloques y si acierta en promedio al menos 1 imagen externa más. Los modelos de esta comparación no se guardan; sus resultados están en `resultados/profundidad_cnn.json`.
+**Profundidad de la CNN** (sección 13 del notebook). Siguiendo a Gando et al. (2016, [doi:10.1016/j.eswa.2016.08.057](https://doi.org/10.1016/j.eswa.2016.08.057)), que compararon CNN propias de 1 a 5 capas convolucionales, se entrenó la CNN base con 2, 3, 4 y 5 bloques (filtros 32, 64, 128, 256 y 512), 3 semillas cada una (42, 43 y 44). La regla de selección usa únicamente las imágenes externas: se adopta otra profundidad solo si mejora el promedio de aciertos externos por al menos 1 imagen respecto a los 3 bloques de referencia. Validación y prueba se reportan como métricas descriptivas, pero no deciden la selección. Los modelos de esta comparación no se guardan; sus resultados están en `resultados/profundidad_cnn.json`.
 
 | Bloques | Parámetros | Validación (media ± DE) | Pérdida de validación | Externas |
 |---|---|---|---|---|
@@ -96,23 +96,23 @@ Cada modelo se evalúa con el mismo redimensionado con que se entrenó. Las cach
 | 4 | 1,568,579 | 99.51% ± 0.19 | 0.0164 | 2 de 8 |
 | 5 | 1,831,235 | 99.45% ± 0.34 | 0.0230 | 2 de 8 |
 
-Se mantienen los 3 bloques: tienen la mejor validación y ninguna profundidad cambia las externas (las 12 redes clasifican las 8 imágenes como cartoon, con al menos 92.9% de confianza). Con la semilla 42, la red de 3 bloques reproduce exactamente la CNN base.
+Se mantienen los 3 bloques porque ninguna profundidad mejora los aciertos externos: las 12 redes clasifican las 8 imágenes como cartoon, con al menos 92.9% de confianza. La validación más alta de los 3 bloques se reporta, pero no interviene en la selección. Con la semilla 42, la red de 3 bloques reproduce exactamente la CNN base.
 
-**Profundidad del ajuste fino de EfficientNetB0** (sección 14 del notebook). Las "últimas 20 capas" del ajuste fino también se habían fijado sin fuente. Se siguió el procedimiento incremental de Tajbakhsh et al. (2016, [doi:10.1109/TMI.2016.2535302](https://doi.org/10.1109/TMI.2016.2535302)): empezar por la última capa e ir descongelando hacia atrás, por bloques (solo la cabeza, `top_conv`, `block7a`, `block6a`, … hasta la base completa), y detenerse tras dos pasos seguidos sin mejora. Se aplicó al modelo `stretch_aug` a 128 px con la misma regla y las mismas 3 semillas que la CNN, y la configuración de 20 capas como referencia. Los resultados están en `resultados/profundidad_efficientnet.json`.
+**Profundidad del ajuste fino de EfficientNetB0** (sección 14 del notebook). Las "últimas 20 capas" del ajuste fino también se habían fijado sin fuente. Se siguió el procedimiento incremental de Tajbakhsh et al. (2016, [doi:10.1109/TMI.2016.2535302](https://doi.org/10.1109/TMI.2016.2535302)): empezar por la última capa e ir descongelando hacia atrás, por bloques (solo la cabeza, `top_conv`, `block7a`, `block6a`, … hasta la base completa), y detenerse tras dos pasos seguidos sin aumentar los aciertos externos promedio. Se eligió únicamente por el promedio de aciertos en las 8 imágenes externas; validación y prueba son métricas descriptivas. Se aplicó al modelo `stretch_aug` a 128 px con 3 semillas y la configuración de 20 capas como referencia. Los resultados están en `resultados/profundidad_efficientnet.json`.
 
 | Parte ajustada | Parámetros entrenables | Validación (media ± DE) | Pérdida de validación | Externas (media ± DE) |
 |---|---|---|---|---|
-| Solo la cabeza | 3,843 | 99.04% ± 0.10 | 0.0251 | 6.00 ± 0.00 de 8 |
+| **Solo la cabeza (modelo seleccionado)** | 3,843 | 99.04% ± 0.10 | 0.0251 | **6.00 ± 0.00 de 8** |
 | Desde `top_conv` | 413,443 | 99.24% ± 0.07 | 0.0207 | 5.67 ± 0.47 de 8 |
 | Desde `block7a` | 1,125,427 | 99.56% ± 0.10 | 0.0127 | 5.00 ± 0.00 de 8 |
-| **Últimas 20 capas (actual)** | 1,346,611 | 99.48% ± 0.04 | 0.0136 | 5.00 ± 0.00 de 8 |
+| Últimas 20 capas | 1,346,611 | 99.48% ± 0.04 | 0.0136 | 5.00 ± 0.00 de 8 |
 
-El recorrido se detuvo en `block7a`, porque ni `top_conv` ni `block7a` superaron a "solo la cabeza", así que de `block6a` hacia atrás no se entrenó. Se mantienen las 20 capas y no hace falta reentrenar los demás modelos.
+El recorrido se detuvo en `block7a`, porque ni `top_conv` ni `block7a` superaron a "solo la cabeza", así que de `block6a` hacia atrás no se entrenó. Con el criterio actualizado, la mejor configuración explorada y guardada es entrenar solo la cabeza (6 de 8 externas, frente a 5 de 8 para las últimas 20 capas). El archivo `modelos/efficientnetb0_stretch_aug_head.keras` está disponible en la interfaz.
 
-Hay un intercambio claro entre los dos criterios:
+La métrica externa guía la selección; la validación se conserva como dato descriptivo:
 
-- **Entrenar solo la cabeza** acierta 6 de 8 con las tres semillas (suma `pruebaAnime.jpg`, con 52–71% de confianza). Pero su validación media (99.04%) queda por debajo del piso de la regla (99.44%, unas 6 imágenes más mal clasificadas de 1,281).
-- **Ajustar desde `block7a`** tiene la mejor validación, pero no cambia las externas.
+- **Entrenar solo la cabeza** es la configuración seleccionada por el criterio externo: acierta 6 de 8 con las tres semillas (suma `pruebaAnime.jpg`, con 52–71% de confianza), una imagen más que la referencia. Su validación media es 99.04%; se reporta, pero no condiciona la selección.
+- **Ajustar desde `block7a`** tiene la mejor validación, pero obtiene 5 de 8 externas y no mejora a solo la cabeza.
 
 Una posible explicación, sin comprobar, es que ajustar más capas adapta la red a los sesgos del dataset. La diferencia depende de 1 imagen de 8, así que no es concluyente.
 
@@ -127,6 +127,7 @@ Una posible explicación, sin comprobar, es que ajustar más capas adapta la red
 | EfficientNetB0 + estirar | 99.69% / 0.9968 | 99.84% / 0.9984 | 2 | 50.0% / 0.522 |
 | EfficientNetB0 + aumento (padding) | 99.69% / 0.9969 | 99.84% / 0.9984 | 2 | 62.5% / 0.635 |
 | EfficientNetB0 + estirar y aumento | 99.69% / 0.9968 | 99.77% / 0.9976 | 3 | 62.5% / 0.635 |
+| **EfficientNetB0 + estirar, aumento y solo la cabeza** | 98.98% / 0.9899 | 99.45% / 0.9946 | 7 | **75.0% / 0.738** |
 | EfficientNetB0 + estirar y aumento dirigido | 99.45% / 0.9945 | 99.30% / 0.9929 | 9 | 50.0% / 0.490 |
 | EfficientNetB0 + estirar y alejar | 99.14% / 0.9914 | 99.45% / 0.9945 | 7 | 50.0% / 0.489 |
 | EfficientNetB0 + estirar y recortar | 99.61% / 0.9961 | 99.69% / 0.9969 | 4 | 62.5% / 0.635 |
@@ -149,7 +150,7 @@ En validación y prueba todos los modelos superan el 99.5% y se distinguen por u
 - **A 224 px** la exactitud sube en validación (99.84%) y en prueba (99.92%, 1 error, la mejor de las variantes estiradas), pero las externas se quedan en 5 de 8: `pruebaAnime2.jpg` se acierta por primera vez (anime, 65%) y se pierde el rostro pixelado `pruebaAnime4.jpg` (cartoon, 98%). Un solo entrenamiento y 8 imágenes: no concluyente.
 - **Ninguna variante acierta a la vez las dos ilustraciones anime de estilo moderno**, el modelo anatómico falla en todas y casi todos los errores van a cartoon. Una posible explicación (sin comprobar) es que el anime del dataset son solo rostros recortados, y el aumento no crea personajes con cuerpo, fondos ni estilos nuevos.
 
-Es un conjunto muy pequeño y las diferencias de 1 o 2 aciertos (transfer learning, aumento de datos) o de 1 imagen en prueba (Dropout) no son concluyentes, pero indica que la exactitud en validación y prueba **no se mantiene con imágenes de otro origen**. El análisis exploratorio mostró que las clases difieren también en resolución, peso de archivo, color y composición, y la validación y la prueba comparten esos sesgos con el entrenamiento. Por eso las mejoras siguientes se comparan con las imágenes externas y no solo con la validación, que ya está saturada.
+Es un conjunto muy pequeño y las diferencias de 1 o 2 aciertos (transfer learning, aumento de datos) o de 1 imagen en prueba (Dropout) no son concluyentes, pero indica que la exactitud en validación y prueba **no se mantiene con imágenes de otro origen**. El análisis exploratorio mostró que las clases difieren también en resolución, peso de archivo, color y composición, y la validación y la prueba comparten esos sesgos con el entrenamiento. Por eso la selección de configuraciones se basa en las imágenes externas; validación y prueba se reportan como métricas complementarias.
 
 ## Estado
 
@@ -161,5 +162,5 @@ Es un conjunto muy pequeño y las diferencias de 1 o 2 aciertos (transfer learni
 - [x] Regularización con Dropout (sin mejora medible)
 - [x] Aumento de datos y estirar las imágenes (mejora modesta)
 - [x] Profundidad de la CNN, de 2 a 5 bloques (sin mejora: se mantienen 3)
-- [x] Profundidad del ajuste fino de EfficientNetB0 (sin mejora que cumpla la regla: se mantienen 20 capas)
-- [ ] Reporte final
+- [x] Profundidad del ajuste fino de EfficientNetB0 (solo la cabeza obtiene más aciertos externos y está disponible en la interfaz)
+- [x] Reporte final
